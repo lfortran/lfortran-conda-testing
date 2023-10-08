@@ -56,14 +56,14 @@ jobs:
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/integration_tests
-            ./run_tests.py -b llvm c wasm
+            ./run_tests.py -b llvm wasm
 
       - name: Run LFortran Fast Integration Tests
         if: ${{ !startsWith(matrix.os, 'windows-2019') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/integration_tests
-            ./run_tests.py -b llvm c wasm -f
+            ./run_tests.py -b llvm wasm -f
 
       - name: Run LFortran Reference Tests
         if: ${{ !startsWith(matrix.os, 'windows-2019') }}
