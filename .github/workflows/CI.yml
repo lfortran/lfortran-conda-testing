@@ -40,7 +40,7 @@ jobs:
         run: |
             git clone https://github.com/lfortran/lfortran.git
             git fetch https://github.com/lfortran/lfortran.git --tags -f
-            git checkout v0.20.0
+            git checkout v0.20.3
 
       - name: Run LFortran Integration Tests
         shell: bash -e -l {0}
