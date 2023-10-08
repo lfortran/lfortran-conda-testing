@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  MACOSX_DEPLOYMENT_TARGET: 12.0
+
+jobs:
+  Build:
+    name: Conda-Forge LFortran Test ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["windows-2019", "macos-latest", "ubuntu-latest"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: environment.yml
+
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+
+      - name: Clone LFortran Source Repository
+        shell: bash -e -l {0}
+        run: |
+            git clone https://github.com/lfortran/lfortran.git
+            git fetch https://github.com/lfortran/lfortran.git --tags -f
+            git checkout v0.20.0
+
+      - name: Run LFortran Integration Tests
+        shell: bash -e -l {0}
+        run: |
+            cd lfortran/integration_tests
+            ./run_tests.py -b llvm c wasm
+
+      - name: Run LFortran Fast Integration Tests
+        shell: bash -e -l {0}
+        run: |
+            cd lfortran/integration_tests
+            ./run_tests.py -b llvm c wasm -f
+
+      - name: Run LFortran Reference Tests
+        shell: bash -e -l {0}
+        run: |
+            cd lfortran
+            ./run_tests.py --skip-run-with-dbg
