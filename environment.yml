@@ -2,7 +2,7 @@ name: lf
 channels:
   - conda-forge
 dependencies:
-  - lfortran=0.20.3
+  - lfortran=0.21.3
   - nodejs=18.12.1
   - make=4.3
   - cmake=3.25.2
