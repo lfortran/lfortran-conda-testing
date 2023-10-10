@@ -11,6 +11,7 @@ on:
       - main
 
 env:
+  LFORTRAN_VERSION: 0.21.3
   MACOSX_DEPLOYMENT_TARGET: 12.0
 
 jobs:
@@ -29,6 +30,8 @@ jobs:
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: environment.yml
+          create-args: >-
+            lfortran=${{ env.LFORTRAN_VERSION }}
 
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -49,7 +52,7 @@ jobs:
             git clone https://github.com/lfortran/lfortran.git
             cd lfortran
             git fetch https://github.com/lfortran/lfortran.git --tags -f
-            git checkout v0.21.3
+            git checkout v${{ env.LFORTRAN_VERSION }}
 
       - name: Run LFortran Integration Tests
         if: ${{ !startsWith(matrix.os, 'windows-2019') }}
