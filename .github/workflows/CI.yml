@@ -180,11 +180,20 @@ jobs:
             make
             ls -l ./gpt2 ./chat ./test_basic_input ./test_chat ./test_more_inputs
             file ./gpt2 ./chat ./test_basic_input ./test_chat ./test_more_inputs
-            ldd ./gpt2
-            ldd ./chat
-            ldd ./test_basic_input
-            ldd ./test_chat
-            ldd ./test_more_inputs
+
+            if [[ $OSTYPE == 'darwin'* ]]; then
+              otool -L ./gpt2
+              otool -L ./chat
+              otool -L ./test_basic_input
+              otool -L ./test_chat
+              otool -L ./test_more_inputs
+            else
+              ldd ./gpt2
+              ldd ./chat
+              ldd ./test_basic_input
+              ldd ./test_chat
+              ldd ./test_more_inputs
+            fi
 
             git clean -dfx
             git checkout -t origin/lf35run
