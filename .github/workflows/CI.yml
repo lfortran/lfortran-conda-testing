@@ -95,7 +95,7 @@ jobs:
             lfortran=${{ env.LFORTRAN_VERSION }}
             python=3.10
             openblas=0.3.21
-            llvm-openmp=11.1.0
+            llvm-openmp=14.0.4
 
       - name: Print installed packages information
         shell: bash -e -x -l {0}
