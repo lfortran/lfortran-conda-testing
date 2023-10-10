@@ -77,8 +77,12 @@ jobs:
             ./run_tests.py --skip-run-with-dbg --no-llvm --skip-cpptranslate
 
   third_party_code_compile:
-    name: Check Third Party Code Compilation
-    runs-on: ubuntu-latest
+    name: Check Third Party Code Compilation ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest", "ubuntu-latest"]
     steps:
       - uses: actions/checkout@v4
         with:
