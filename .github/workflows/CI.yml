@@ -75,3 +75,184 @@ jobs:
         run: |
             cd lfortran
             ./run_tests.py --skip-run-with-dbg --no-llvm --skip-cpptranslate
+
+  third_party_code_compile:
+    name: Check Third Party Code Compilation ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest", "ubuntu-latest"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: environment.yml
+          create-args: >-
+            lfortran=${{ env.LFORTRAN_VERSION }}
+            python=3.10
+            openblas=0.3.21
+            llvm-openmp=14.0.4
+
+      - name: Print installed packages information
+        shell: bash -e -x -l {0}
+        run: |
+            which lfortran
+            micromamba env list
+            micromamba activate lf
+            micromamba list
+            which lfortran
+
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-ubuntu-latest
+
+      - name: Test Legacy Minpack (SciPy)
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/certik/minpack.git
+            cd minpack
+            git checkout -t origin/scipy30
+            git checkout 409ba02a107f47ee835f3976952bbc64dd46de8a
+            mkdir lf
+            cd lf
+            FC=lfortran cmake ..
+            make
+            examples/example_hybrd
+            examples/example_hybrd1
+            examples/example_lmder1
+            examples/example_lmdif1
+            examples/example_primes
+            ctest
+
+      - name: Test Modern Minpack (Fortran-Lang)
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/fortran-lang/minpack modern_minpack_01
+            cd modern_minpack_01
+            git checkout c0b5aea9fcd2b83865af921a7a7e881904f8d3c2
+            lfortran ./src/minpack.f90 -c --legacy-array-sections
+            lfortran ./examples/example_hybrd.f90 --legacy-array-sections
+            lfortran ./examples/example_hybrd1.f90 --legacy-array-sections
+            lfortran ./examples/example_lmdif1.f90 --legacy-array-sections
+            lfortran ./examples/example_lmder1.f90 --legacy-array-sections
+
+      - name: Test Modern Minpack (check results)
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/Pranavchiku/modern_minpack.git modern_minpack_02
+            cd modern_minpack_02
+            git checkout -t origin/w5
+            git checkout fcde66ca86348eb0c4012dbdf0f4d8dba61261d8
+            lfortran ./src/minpack.f90 -c --legacy-array-sections
+            lfortran ./examples/example_hybrd.f90 --legacy-array-sections
+            lfortran ./examples/example_hybrd1.f90 --legacy-array-sections
+            lfortran ./examples/example_lmdif1.f90 --legacy-array-sections
+            lfortran ./examples/example_lmder1.f90 --legacy-array-sections
+
+            # lfortran --fast ./examples/example_hybrd.f90 --legacy-array-sections
+            # lfortran --fast ./examples/example_hybrd1.f90 --legacy-array-sections
+            # lfortran --fast ./examples/example_lmdif1.f90 --legacy-array-sections
+            # lfortran --fast ./examples/example_lmder1.f90 --legacy-array-sections
+
+      - name: Test dftatom
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/czgdp1807/dftatom.git
+            cd dftatom
+            git checkout -t origin/lf9
+            git checkout e421613bc1c98313155f643e40f51510553f7512
+            make -f Makefile.manual
+
+      - name: Test fastGPT
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/certik/fastGPT.git
+            cd fastGPT
+            git checkout -t origin/lf6
+            git checkout bc04dbf476b6173b0bb945ff920119ffaf4a290d
+            echo $CONDA_PREFIX
+            FC=lfortran CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS .
+            make
+            ls -l ./gpt2 ./chat ./test_basic_input ./test_chat ./test_more_inputs
+            file ./gpt2 ./chat ./test_basic_input ./test_chat ./test_more_inputs
+
+            if [[ $OSTYPE == 'darwin'* ]]; then
+              otool -L ./gpt2
+              otool -L ./chat
+              otool -L ./test_basic_input
+              otool -L ./test_chat
+              otool -L ./test_more_inputs
+            else
+              ldd ./gpt2
+              ldd ./chat
+              ldd ./test_basic_input
+              ldd ./test_chat
+              ldd ./test_more_inputs
+            fi
+
+            git clean -dfx
+            git checkout -t origin/lf35run
+            git checkout 9de55b77576ea57c70c0651f233971d1e2bd0cae
+            curl -o model.dat -L https://huggingface.co/datasets/certik/fastGPT/resolve/main/model_fastgpt_124M_v1.dat
+
+            mkdir lf
+            cd lf
+            FC=lfortran CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Debug ..
+            make VERBOSE=1
+            ln -s ../model.dat .
+            ./gpt2
+            ./test_more_inputs
+            ./test_chat
+            ctest -V
+            cd ..
+
+            mkdir lf-fast
+            cd lf-fast
+            FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release ..
+            make VERBOSE=1
+            ln -s ../model.dat .
+            ./gpt2
+            ./test_more_inputs
+            ./test_chat
+            ctest -V
+            cd ..
+
+            git clean -dfx
+            git checkout -t origin/namelist
+            git checkout d3eef520c1be8e2db98a3c2189740af1ae7c3e06
+            curl -o model.dat -L https://huggingface.co/datasets/certik/fastGPT/resolve/main/model_fastgpt_124M_v1.dat
+
+            mkdir lf
+            cd lf
+            FC=lfortran CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Debug ..
+            make VERBOSE=1
+            ln -s ../model.dat .
+            ./gpt2
+            ./test_basic_input
+            ./test_more_inputs
+            cd ..
+
+            mkdir lf-fast
+            cd lf-fast
+            FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release ..
+            make VERBOSE=1
+            ln -s ../model.dat .
+            ./gpt2
+            ./test_basic_input
+            ./test_more_inputs
+            cd ..
+
+      - name: Test fpm
+        if: ${{ startsWith(matrix.os, 'ubuntu-latest') }}
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/certik/fpm.git
+            cd fpm
+            git checkout lfortran_build_1
+            git checkout ab02e3a57bc286c6e75b23098c209db8c27157ea
+            ./build.sh
