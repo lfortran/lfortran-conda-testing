@@ -49,7 +49,7 @@ jobs:
             git clone https://github.com/lfortran/lfortran.git
             cd lfortran
             git fetch https://github.com/lfortran/lfortran.git --tags -f
-            git checkout v0.20.3
+            git checkout v0.21.3
 
       - name: Run LFortran Integration Tests
         if: ${{ !startsWith(matrix.os, 'windows-2019') }}
@@ -65,9 +65,9 @@ jobs:
             cd lfortran/integration_tests
             ./run_tests.py -b llvm wasm -f
 
-      # - name: Run LFortran Reference Tests
-      #   if: ${{ !startsWith(matrix.os, 'windows-2019') }}
-      #   shell: bash -e -x -l {0}
-      #   run: |
-      #       cd lfortran
-      #       ./run_tests.py --skip-run-with-dbg --no-llvm --skip-cpptranslate
+      - name: Run LFortran Reference Tests
+        if: ${{ !startsWith(matrix.os, 'windows-2019') }}
+        shell: bash -e -x -l {0}
+        run: |
+            cd lfortran
+            ./run_tests.py --skip-run-with-dbg --no-llvm --skip-cpptranslate
