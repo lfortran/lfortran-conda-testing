@@ -44,6 +44,7 @@ jobs:
             which lfortran
             micromamba env list
             micromamba activate lf
+            micromamba list
             which lfortran
 
       - name: Clone LFortran Source Repository
