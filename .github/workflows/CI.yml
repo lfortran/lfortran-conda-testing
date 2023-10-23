@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  LFORTRAN_VERSION: 0.24.0
+  LFORTRAN_VERSION: 0.25.0
   MACOSX_DEPLOYMENT_TARGET: 12.0
 
 jobs:
@@ -128,11 +128,14 @@ jobs:
         run: |
             git clone https://github.com/czgdp1807/dftatom.git
             cd dftatom
-            git checkout -t origin/lf38
-            git checkout 046ae9b06dda7664ab1c71b6aecde48a03952f2d
-            export PATH="$(pwd)/../src/bin:$PATH"
+            git checkout -t origin/lf40
+            git checkout 5f54bcceab998dfc5c347eb9dfeade61c5cbc6d9
             make -f Makefile.manual
             make -f Makefile.manual test
+            git clean -dfx
+            make -f Makefile.manual F90="lfortran --skip-pass=inline_function_calls,fma --fast"
+            make -f Makefile.manual test
+
 
       - name: Test fastGPT
         shell: bash -e -x -l {0}
