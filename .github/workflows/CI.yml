@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  LFORTRAN_VERSION: 0.21.5
+  LFORTRAN_VERSION: 0.24.0
   MACOSX_DEPLOYMENT_TARGET: 12.0
 
 jobs:
@@ -126,10 +126,10 @@ jobs:
       - name: Test dftatom
         shell: bash -e -x -l {0}
         run: |
-            git clone https://github.com/certik/dftatom.git
+            git clone https://github.com/czgdp1807/dftatom.git
             cd dftatom
-            git checkout -t origin/lf27
-            git checkout c1b5ccaa592961d7a3acf6b87b3c5059e543bc87
+            git checkout -t origin/lf38
+            git checkout 046ae9b06dda7664ab1c71b6aecde48a03952f2d
             export PATH="$(pwd)/../src/bin:$PATH"
             make -f Makefile.manual
             make -f Makefile.manual test
