@@ -129,10 +129,10 @@ jobs:
             git clone https://github.com/certik/dftatom.git
             cd dftatom
             git checkout b838e858e046a36dd2235713ba111199bcf718bd
-            make -f Makefile.manual F90=lfortran F90FLAGS="-I../../src"
+            make -f Makefile.manual F90=lfortran F90FLAGS=
             make -f Makefile.manual test
             git clean -dfx
-            make -f Makefile.manual F90="lfortran --skip-pass=inline_function_calls,fma --fast" F90FLAGS="-I../../src"
+            make -f Makefile.manual F90="lfortran --skip-pass=inline_function_calls,fma --fast" F90FLAGS=
             make -f Makefile.manual test
 
 
