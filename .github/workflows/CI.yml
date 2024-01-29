@@ -231,3 +231,51 @@ jobs:
             cd scipy/
             micromamba activate scipy-dev
             python dev.py test -t scipy.interpolate -v
+
+  misc:
+    name: Misc Test ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest", "ubuntu-latest"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: environment.yml
+          create-args: >-
+            lfortran=${{ env.LFORTRAN_VERSION }}
+            llvmdev=11.1.0
+
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+
+      - name: Print installed packages information
+        shell: bash -e -x -l {0}
+        run: |
+            which lfortran
+            micromamba env list
+            micromamba activate lf
+            micromamba list
+            which lfortran
+
+      - name: Clone LFortran Source Repository
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/lfortran/lfortran.git
+            cd lfortran
+            git fetch https://github.com/lfortran/lfortran.git --tags -f
+            git checkout v${{ env.LFORTRAN_VERSION }}
+
+      - name: Run LFortran Misc Tests
+        if: ${{ !startsWith(matrix.os, 'windows-2019') }}
+        shell: bash -e -x -l {0}
+        run: |
+            cd lfortran
+            ./run_tests.py --no-llvm --skip-cpptranslate
