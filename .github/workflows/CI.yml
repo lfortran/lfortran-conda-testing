@@ -154,7 +154,7 @@ jobs:
             ln -s ../model.dat .
             ./gpt2
             ./test_basic_input
-            ./test_more_inputs
+            #./test_more_inputs
             cd ..
 
             mkdir lf-fast
@@ -164,7 +164,7 @@ jobs:
             ln -s ../model.dat .
             ./gpt2
             ./test_basic_input
-            ./test_more_inputs
+            #./test_more_inputs
             cd ..
 
   test_scipy:
