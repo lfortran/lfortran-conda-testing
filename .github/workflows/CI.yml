@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  LFORTRAN_VERSION: 0.36.0
+  LFORTRAN_VERSION: 0.37.0
   MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
@@ -154,9 +154,14 @@ jobs:
             ln -s ../model.dat .
             ./gpt2
             ./test_basic_input
-            #./test_more_inputs
+            ./test_more_inputs
             cd ..
 
+      - name: Test fastGPT --fast (Linux)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash -e -x -l {0}
+        run: |
+            cd fastGPT
             mkdir lf-fast
             cd lf-fast
             FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release ..
@@ -164,7 +169,7 @@ jobs:
             ln -s ../model.dat .
             ./gpt2
             ./test_basic_input
-            #./test_more_inputs
+            ./test_more_inputs
             cd ..
 
   test_scipy:
