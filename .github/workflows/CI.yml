@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  LFORTRAN_VERSION: 0.37.0
+  LFORTRAN_VERSION: 0.38.0
   MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
