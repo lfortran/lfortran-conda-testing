@@ -98,6 +98,12 @@ jobs:
             llvm-openmp=14.0.4
             fypp=3.2
 
+      - name: Remove GFortran (Linux)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash -e -x -l {0}
+        run: |
+            sudo apt-get remove -y gfortran
+
       - name: Print installed packages information
         shell: bash -e -x -l {0}
         run: |
@@ -106,6 +112,11 @@ jobs:
             micromamba activate lf
             micromamba list
             which lfortran
+            lfortran --version
+            if [[ "$(which gfortran)" != "" ]]; then
+              echo "GFortran is installed and should not be."
+              exit 1
+            fi
 
       - uses: hendrikmuhs/ccache-action@main
         with:
