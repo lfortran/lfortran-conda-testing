@@ -106,6 +106,7 @@ jobs:
             micromamba activate lf
             micromamba list
             which lfortran
+            lfortran --version
 
       - uses: hendrikmuhs/ccache-action@main
         with:
