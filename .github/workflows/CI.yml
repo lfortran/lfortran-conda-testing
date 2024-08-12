@@ -107,6 +107,10 @@ jobs:
             micromamba list
             which lfortran
             lfortran --version
+            if [[ "$(which gfortran)" != "" ]]; then
+              echo "GFortran is installed and should not be."
+              exit 1
+            fi
 
       - uses: hendrikmuhs/ccache-action@main
         with:
