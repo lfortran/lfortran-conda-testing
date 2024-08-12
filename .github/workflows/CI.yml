@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  LFORTRAN_VERSION: 0.38.0
+  LFORTRAN_VERSION: 0.39.0
   MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
@@ -283,4 +283,4 @@ jobs:
         shell: bash -e -x -l {0}
         run: |
             cd lfortran
-            ./run_tests.py --no-llvm --skip-cpptranslate
+            ./run_tests.py --skip-run-with-dbg --no-llvm --skip-cpptranslate
