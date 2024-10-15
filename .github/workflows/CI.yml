@@ -10,6 +10,7 @@ on:
     branches:
       - main
 
+
 env:
   LFORTRAN_VERSION: 0.41.0
   MACOSX_DEPLOYMENT_TARGET: 14.0
