@@ -329,7 +329,8 @@ jobs:
         shell: bash -e -l {0}
         run: |
           cd $HOME
-          curl -o wasmtime.tar.gz -L https://github.com/bytecodealliance/wasmtime/releases/download/v19.0.2/wasmtime-v19.0.2-x86_64-linux.tar.xz                 tar -xvf wasmtime.tar.gz
+          curl -o wasmtime.tar.gz -L https://github.com/bytecodealliance/wasmtime/releases/download/v19.0.2/wasmtime-v19.0.2-x86_64-linux.tar.xz
+          tar -xvf wasmtime.tar.gz
           export PATH=$HOME/wasmtime-v19.0.2-x86_64-linux:$PATH
           wasmtime --version
 
