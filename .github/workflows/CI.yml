@@ -313,6 +313,36 @@ jobs:
             micromamba list
             which lfortran
 
+      - name: Setup WASI SDK
+        shell: bash -e -l {0}
+        run: |
+          cd $HOME
+          curl -o wasi-sdk.tar.gz -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-21/wasi-sdk-21.0-linux.tar.gz
+          tar -xvf wasi-sdk.tar.gz
+          export WASI_SDK_PATH=$HOME/wasi-sdk-21.0
+          echo $WASI_SDK_PATH
+          $WASI_SDK_PATH/bin/clang --version
+
+      - name: Install wasmtime
+        shell: bash -e -l {0}
+        run: |
+          cd $HOME
+          curl -o wasmtime.tar.gz -L https://github.com/bytecodealliance/wasmtime/releases/download/v19.0.2/wasmtime-v19.0.2-x86_64-linux.tar.xz                 tar -xvf wasmtime.tar.gz
+          export PATH=$HOME/wasmtime-v19.0.2-x86_64-linux:$PATH
+          wasmtime --version
+
+      - name: Setup EMSCRIPTEN SDK
+        shell: bash -e -l {0}
+        run: |
+          cd $HOME
+          curl -o emsdk.tar.gz -L https://github.com/emscripten-core/emsdk/archive/refs/tags/3.1.59.tar.gz
+          tar -xvf emsdk.tar.gz
+          export EMSDK_PATH=$HOME/emsdk-3.1.59
+          echo $EMSDK_PATH
+          cd $EMSDK_PATH
+          ./emsdk install latest
+          ./emsdk activate latest
+
       - name: Clone LFortran Source Repository
         shell: bash -e -x -l {0}
         run: |
@@ -327,3 +357,16 @@ jobs:
         run: |
             cd lfortran
             ./run_tests.py --skip-run-with-dbg --no-llvm --skip-cpptranslate
+
+
+      - name: Run LFortran WASM Tests
+        if: ${{ !startsWith(matrix.os, 'windows-2019') }}
+        shell: bash -e -x -l {0}
+        run: |
+            cd lfortran
+            export WASI_SDK_PATH=$HOME/wasi-sdk-21.0
+            export EMSDK_PATH=$HOME/emsdk-3.1.59
+            export PATH=$HOME/wasmtime-v19.0.2-x86_64-linux:$PATH
+            export WASMTIME_NEW_CLI=0
+            cd integration_tests
+            ./run_tests.py -b llvm_wasm llvm_wasm_emcc
