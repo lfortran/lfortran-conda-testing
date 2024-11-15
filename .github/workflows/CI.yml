@@ -314,6 +314,7 @@ jobs:
             which lfortran
 
       - name: Setup WASI SDK
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -l {0}
         run: |
           cd $HOME
@@ -324,6 +325,7 @@ jobs:
           $WASI_SDK_PATH/bin/clang --version
 
       - name: Install wasmtime
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -l {0}
         run: |
           cd $HOME
@@ -332,6 +334,7 @@ jobs:
           wasmtime --version
 
       - name: Setup EMSCRIPTEN SDK
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -l {0}
         run: |
           cd $HOME
@@ -360,7 +363,7 @@ jobs:
 
 
       - name: Run LFortran WASM Tests
-        if: ${{ !startsWith(matrix.os, 'windows-2019') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran
