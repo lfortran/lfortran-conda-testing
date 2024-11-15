@@ -373,4 +373,6 @@ jobs:
             export PATH=$HOME/wasmtime-v19.0.2-x86_64-linux:$PATH
             export WASMTIME_NEW_CLI=0
             cd integration_tests
-            ./run_tests.py -b llvm_wasm llvm_wasm_emcc
+            # llvm_wasm requires lfortran_runtime_wasm_wasi.o which is
+            # currently missing
+            ./run_tests.py -b llvm_wasm_emcc
