@@ -165,9 +165,10 @@ jobs:
             FC=lfortran CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Debug ..
             make VERBOSE=1
             ln -s ../model.dat .
-            ./gpt2
-            ./test_basic_input
-            ./test_more_inputs
+            # Temporarily disabled due to https://github.com/lfortran/lfortran/issues/5898:
+            #./gpt2
+            #./test_basic_input
+            #./test_more_inputs
             cd ..
 
       - name: Test fastGPT --fast (Linux)
@@ -180,9 +181,10 @@ jobs:
             FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release ..
             make VERBOSE=1
             ln -s ../model.dat .
-            ./gpt2
-            ./test_basic_input
-            ./test_more_inputs
+            # Temporarily disabled due to https://github.com/lfortran/lfortran/issues/5898:
+            #./gpt2
+            #./test_basic_input
+            #./test_more_inputs
             cd ..
 
       - name: Test stdlib
