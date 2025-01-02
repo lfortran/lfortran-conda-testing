@@ -141,7 +141,7 @@ jobs:
         run: |
             git clone https://github.com/certik/dftatom.git
             cd dftatom
-            git checkout b838e858e046a36dd2235713ba111199bcf718bd
+            git checkout 9b678177f67e350b8a32e08cb61f51e6e708e87a
             make -f Makefile.manual F90=lfortran F90FLAGS="-I../../src"
             make -f Makefile.manual quicktest
             git clean -dfx
