@@ -162,13 +162,12 @@ jobs:
 
             mkdir lf
             cd lf
-            FC=lfortran CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Debug ..
+            FC=lfortran CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Debug -DCMAKE_Fortran_FLAGS="--realloc-lhs" ..
             make VERBOSE=1
             ln -s ../model.dat .
-            # Temporarily disabled due to https://github.com/lfortran/lfortran/issues/5898:
-            #./gpt2
-            #./test_basic_input
-            #./test_more_inputs
+            ./gpt2
+            ./test_basic_input
+            ./test_more_inputs
             cd ..
 
       - name: Test fastGPT --fast (Linux)
@@ -178,13 +177,12 @@ jobs:
             cd fastGPT
             mkdir lf-fast
             cd lf-fast
-            FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release ..
+            FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_FLAGS="--realloc-lhs" ..
             make VERBOSE=1
             ln -s ../model.dat .
-            # Temporarily disabled due to https://github.com/lfortran/lfortran/issues/5898:
-            #./gpt2
-            #./test_basic_input
-            #./test_more_inputs
+            ./gpt2
+            ./test_basic_input
+            ./test_more_inputs
             cd ..
 
       - name: Test stdlib
