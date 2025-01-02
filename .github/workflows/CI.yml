@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.42.0
+  LFORTRAN_VERSION: 0.43.0
   MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
@@ -75,7 +75,7 @@ jobs:
         shell: bash -e -x -l {0}
         run: |
             cd lfortran
-            ./run_tests.py --skip-run-with-dbg --no-llvm --skip-cpptranslate
+            ./run_tests.py --skip-run-with-dbg --no-llvm
 
   third_party_code_compile:
     name: Check Third Party Code Compilation ${{ matrix.os }}
@@ -141,12 +141,12 @@ jobs:
         run: |
             git clone https://github.com/certik/dftatom.git
             cd dftatom
-            git checkout b838e858e046a36dd2235713ba111199bcf718bd
+            git checkout 9b678177f67e350b8a32e08cb61f51e6e708e87a
             make -f Makefile.manual F90=lfortran F90FLAGS="-I../../src"
-            make -f Makefile.manual test
+            make -f Makefile.manual quicktest
             git clean -dfx
             make -f Makefile.manual F90="lfortran --skip-pass=inline_function_calls,fma --fast" F90FLAGS="-I../../src"
-            make -f Makefile.manual test
+            make -f Makefile.manual quicktest
 
 
       - name: Test fastGPT
@@ -162,7 +162,7 @@ jobs:
 
             mkdir lf
             cd lf
-            FC=lfortran CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Debug ..
+            FC=lfortran CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Debug -DCMAKE_Fortran_FLAGS="--realloc-lhs" ..
             make VERBOSE=1
             ln -s ../model.dat .
             ./gpt2
@@ -177,7 +177,7 @@ jobs:
             cd fastGPT
             mkdir lf-fast
             cd lf-fast
-            FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release ..
+            FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_FLAGS="--realloc-lhs" ..
             make VERBOSE=1
             ln -s ../model.dat .
             ./gpt2
@@ -360,7 +360,7 @@ jobs:
         shell: bash -e -x -l {0}
         run: |
             cd lfortran
-            ./run_tests.py --skip-run-with-dbg --no-llvm --skip-cpptranslate
+            ./run_tests.py --skip-run-with-dbg --no-llvm
 
 
       - name: Run LFortran WASM Tests
