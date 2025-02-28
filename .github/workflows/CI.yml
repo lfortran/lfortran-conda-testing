@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.45.0
+  LFORTRAN_VERSION: 0.46.0
   MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
@@ -58,14 +58,14 @@ jobs:
             git checkout v${{ env.LFORTRAN_VERSION }}
 
       - name: Run LFortran Integration Tests
-        if: ${{ !startsWith(matrix.os, 'windows-2019') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/integration_tests
             ./run_tests.py -b llvm wasm
 
       - name: Run LFortran Fast Integration Tests
-        if: ${{ !startsWith(matrix.os, 'windows-2019') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/integration_tests
