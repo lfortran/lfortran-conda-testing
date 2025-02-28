@@ -28,8 +28,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: mamba-org/setup-micromamba@v1
+      - uses: mamba-org/setup-micromamba@v2.0.2
         with:
+          micromamba-version: '2.0.4-0'
           environment-file: environment.yml
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
@@ -89,8 +90,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: mamba-org/setup-micromamba@v1
+      - uses: mamba-org/setup-micromamba@v2.0.2
         with:
+          micromamba-version: '2.0.4-0'
           environment-file: environment.yml
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
@@ -227,7 +229,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: mamba-org/setup-micromamba@v1
+      - uses: mamba-org/setup-micromamba@v2.0.2
+        with:
+          micromamba-version: '2.0.4-0'
 
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -292,8 +296,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: mamba-org/setup-micromamba@v1
+      - uses: mamba-org/setup-micromamba@v2.0.2
         with:
+          micromamba-version: '2.0.4-0'
           environment-file: environment.yml
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
