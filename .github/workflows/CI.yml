@@ -100,7 +100,6 @@ jobs:
             openblas=0.3.21
             llvm-openmp=14.0.4
             fypp=3.2
-            make=4.3
             openmpi=5.0.6
 
       - name: Remove GFortran (Linux)
@@ -390,6 +389,7 @@ jobs:
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
             llvmdev=11.1.0
+            nodejs=18.12.1
 
       - uses: hendrikmuhs/ccache-action@main
         with:
