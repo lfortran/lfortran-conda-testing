@@ -34,6 +34,7 @@ jobs:
           environment-file: environment.yml
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
+            nodejs=18.12.1
 
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -100,6 +101,7 @@ jobs:
             openblas=0.3.21
             llvm-openmp=14.0.4
             fypp=3.2
+            openmpi=5.0.6
 
       - name: Remove GFortran (Linux)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -216,6 +218,36 @@ jobs:
             ./gsnap ../qasnap/sample/inp out
 
             cd ../..
+
+      - name: Test POT3D
+        shell: bash -e -l {0}
+        run: |
+            FC="lfortran"
+            git clone https://github.com/gxyd/pot3d.git
+            cd pot3d
+            # Only workarounds used now are (also tracked at: https://github.com/lfortran/lfortran/issues/2862):
+            # 1. HDF5 support replaced with binary file read (see: https://github.com/lfortran/lfortran/issues/6561)
+            # 2. namelist reading support replaced with use of file read (see: https://github.com/lfortran/lfortran/issues/1999)
+            # 3. MPI support replaced with custom MPI wrappers (we've C MPI wrappers from https://github.com/gxyd/c_mpi)
+            # 4. moved global procedures to module procedures (see: https://github.com/lfortran/lfortran/issues/6059)
+            git checkout -t origin/hdf5_mpi_namelist_global_deallocate_workaround
+            # this checkout doesn't have deallocate workaround
+            git checkout 68414dcf82e895af9a293b9c1338f679e416adfd
+            cd src
+            if [[ "${{matrix.os}}" == "macos-latest" ]]; then
+              CC=clang
+            else
+              CC=gcc
+            fi
+            ${CC} -I$CONDA_PREFIX/include -c mpi_wrapper.c
+            ${FC} -c mpi_c_bindings.f90
+            ${FC} -c mpi.f90
+            ${FC} -c psi_io.f90 --no-style-warnings --no-warnings
+            ${FC} -c --cpp --implicit-interface pot3d.F90 --no-style-warnings --no-warnings
+            ${FC} mpi_wrapper.o mpi_c_bindings.o mpi.o psi_io.o pot3d.o -o pot3d -L$CONDA_PREFIX/lib -lmpi -Wl,-rpath,$CONDA_PREFIX/lib
+            cp pot3d ../bin/
+            cd ..
+            ./validate.sh
 
       - name: Test PRIMA
         shell: bash -e -l {0}
@@ -358,6 +390,7 @@ jobs:
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
             llvmdev=11.1.0
+            nodejs=18.12.1
 
       - uses: hendrikmuhs/ccache-action@main
         with:
