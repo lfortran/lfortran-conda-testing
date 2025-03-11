@@ -235,12 +235,6 @@ jobs:
             git checkout 8c2c88fb92718c090452bdb613862e7e81343355
             FC=lfortran ./build_and_run.sh
 
-            if [[ "${{matrix.os}}" == "macos-latest" ]]; then
-              # this checkout has deallocate workaround
-              git checkout af554065552a8ce4113b42d29c83a58a4ec1e864
-              FC="lfortran --fast --skip-pass=dead_code_removal" ./build_and_run.sh
-            fi
-
       - name: Test PRIMA
         shell: bash -e -l {0}
         run: |
