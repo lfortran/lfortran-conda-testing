@@ -34,6 +34,7 @@ jobs:
           environment-file: environment.yml
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
+            nodejs=18.12.1
 
       - uses: hendrikmuhs/ccache-action@main
         with:
