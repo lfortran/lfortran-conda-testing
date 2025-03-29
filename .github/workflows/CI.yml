@@ -182,11 +182,6 @@ jobs:
             ./test_more_inputs
             cd ..
 
-      - name: Test fastGPT --fast (Linux)
-        if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        shell: bash -e -x -l {0}
-        run: |
-            cd fastGPT
             mkdir lf-fast
             cd lf-fast
             FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_FLAGS="--realloc-lhs" ..
