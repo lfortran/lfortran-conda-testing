@@ -80,10 +80,12 @@ jobs:
             ./run_tests.py --skip-run-with-dbg --no-llvm
 
       - name: Run LFortran LSP Tests
-        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        if: ${{ !startsWith(matrix.os, 'windows-2019') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran
+            # TODO: remove this line once LFortran 0.51.0 is released:
+            git checkout 4ffef1008bf6594e55457a2fb3c6f4af45008c97
             pip install src/server/tests tests/server/
             pytest tests/server
 
