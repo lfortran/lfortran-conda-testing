@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.49.0
+  LFORTRAN_VERSION: 0.50.0
   MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
@@ -78,6 +78,14 @@ jobs:
         run: |
             cd lfortran
             ./run_tests.py --skip-run-with-dbg --no-llvm
+
+      - name: Run LFortran LSP Tests
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash -e -x -l {0}
+        run: |
+            cd lfortran
+            pip install src/server/tests tests/server/
+            pytest tests/server
 
   third_party_code_compile:
     name: Check Third Party Code Compilation ${{ matrix.os }}
