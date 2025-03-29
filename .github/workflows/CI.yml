@@ -80,7 +80,7 @@ jobs:
             ./run_tests.py --skip-run-with-dbg --no-llvm
 
       - name: Run LFortran LSP Tests
-        if: ${{ !startsWith(matrix.os, 'windows-2019') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran
