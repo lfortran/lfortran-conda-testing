@@ -85,6 +85,7 @@ jobs:
         run: |
             cd lfortran
             pip install src/server/tests tests/server/
+            export LFORTRAN_PATH=$CONDA_PREFIX/bin/lfortran
             pytest tests/server
 
   third_party_code_compile:
