@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.50.0
+  LFORTRAN_VERSION: 0.51.0
   MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
@@ -84,9 +84,8 @@ jobs:
         shell: bash -e -x -l {0}
         run: |
             cd lfortran
-            # TODO: remove this line once LFortran 0.51.0 is released:
-            git checkout 4ffef1008bf6594e55457a2fb3c6f4af45008c97
             pip install src/server/tests tests/server/
+            export LFORTRAN_PATH=$CONDA_PREFIX/bin/lfortran
             pytest tests/server
 
   third_party_code_compile:
