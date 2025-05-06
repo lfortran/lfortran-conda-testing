@@ -86,7 +86,7 @@ jobs:
             cd lfortran
             pip install src/server/tests tests/server/
             export LFORTRAN_PATH=$CONDA_PREFIX/bin/lfortran
-            pytest tests/server
+            pytest --execution-strategy="concurrent" tests/server
 
   third_party_code_compile:
     name: Check Third Party Code Compilation ${{ matrix.os }}
