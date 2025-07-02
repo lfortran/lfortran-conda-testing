@@ -66,7 +66,16 @@ jobs:
             git fetch https://github.com/lfortran/lfortran.git --tags -f
             git checkout v${{ env.LFORTRAN_VERSION }}
 
-      - name: Simple Compilation
+      - name: Simple Compilation (Windows)
+        if: ${{ startsWith(matrix.os, 'windows-') }}
+        shell: cmd
+        run: |
+            call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+            cd lfortran\examples
+            lfortran expr2.f90
+
+      - name: Simple Compilation (Linux/macOS)
+        if: ${{ !startsWith(matrix.os, 'windows-') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/examples
