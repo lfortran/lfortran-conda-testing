@@ -49,6 +49,8 @@ jobs:
             micromamba activate lf
             micromamba list
             which lfortran
+            lfortran --help
+            lfortran --version
 
       - name: Clone LFortran Source Repository
         shell: bash -e -x -l {0}
@@ -57,6 +59,11 @@ jobs:
             cd lfortran
             git fetch https://github.com/lfortran/lfortran.git --tags -f
             git checkout v${{ env.LFORTRAN_VERSION }}
+
+      - name: Simple Compilation
+        shell: bash -e -x -l {0}
+        run: |
+            lfortran examples/expr2.f90
 
       - name: Run LFortran Integration Tests
         if: ${{ !startsWith(matrix.os, 'windows-') }}
