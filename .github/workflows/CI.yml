@@ -36,12 +36,6 @@ jobs:
             lfortran=${{ env.LFORTRAN_VERSION }}
             nodejs=18.12.1
 
-      - name: Install zstd (Windows)
-        if: ${{ startsWith(matrix.os, 'windows-') }}
-        shell: bash -e -x -l {0}
-        run: |
-            micromamba install zstd
-
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -71,6 +65,7 @@ jobs:
         shell: cmd
         run: |
             call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+            micromamba activate lf
             cd lfortran\examples
             lfortran expr2.f90
 
