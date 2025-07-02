@@ -63,7 +63,8 @@ jobs:
       - name: Simple Compilation
         shell: bash -e -x -l {0}
         run: |
-            lfortran examples/expr2.f90
+            cd lfortran/examples
+            lfortran expr2.f90
 
       - name: Run LFortran Integration Tests
         if: ${{ !startsWith(matrix.os, 'windows-') }}
