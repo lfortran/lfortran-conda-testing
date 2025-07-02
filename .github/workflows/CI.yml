@@ -34,7 +34,7 @@ jobs:
           environment-file: environment.yml
           init-shell: >-
             bash
-            cmd
+            cmd.exe
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
             nodejs=18.12.1
