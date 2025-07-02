@@ -36,6 +36,12 @@ jobs:
             lfortran=${{ env.LFORTRAN_VERSION }}
             nodejs=18.12.1
 
+      - name: Install zstd (Windows)
+        if: ${{ startsWith(matrix.os, 'windows-') }}
+        shell: bash -e -x -l {0}
+        run: |
+            micromamba install zstd
+
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -59,12 +65,6 @@ jobs:
             cd lfortran
             git fetch https://github.com/lfortran/lfortran.git --tags -f
             git checkout v${{ env.LFORTRAN_VERSION }}
-
-      - name: Install zstd (Windows)
-        if: ${{ startsWith(matrix.os, 'windows-') }}
-        shell: bash -e -x -l {0}
-        run: |
-            micromamba install zstd
 
       - name: Simple Compilation
         shell: bash -e -x -l {0}
