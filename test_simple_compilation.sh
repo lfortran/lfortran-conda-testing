@@ -2,7 +2,7 @@
 
 set -ex
 
-export PATH="$CONDA_PREFIX\\bin:$ORIGINAL_PATH"
+export PATH="$CONDA_PREFIX/Library/bin:$ORIGINAL_PATH"
 
 cd lfortran/examples
 lfortran expr2.f90
