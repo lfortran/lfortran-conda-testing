@@ -32,9 +32,6 @@ jobs:
         with:
           micromamba-version: '2.0.4-0'
           environment-file: environment.yml
-          init-shell: >-
-            bash
-            cmd.exe
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
             nodejs=18.12.1
@@ -68,16 +65,13 @@ jobs:
         shell: cmd
         run: |
             call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-            micromamba activate lf
-            cd lfortran\examples
-            lfortran expr2.f90
+            bash test_simple_compilation.sh
 
       - name: Simple Compilation (Linux/macOS)
         if: ${{ !startsWith(matrix.os, 'windows-') }}
         shell: bash -e -x -l {0}
         run: |
-            cd lfortran/examples
-            lfortran expr2.f90
+            bash test_simple_compilation.sh
 
       - name: Run LFortran Integration Tests
         if: ${{ !startsWith(matrix.os, 'windows-') }}
