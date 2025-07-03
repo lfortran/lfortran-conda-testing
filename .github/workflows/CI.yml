@@ -65,7 +65,7 @@ jobs:
         shell: cmd
         run: |
             call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-            bash test_simple_compilation.sh
+            bash -e -x -l test_simple_compilation.sh
 
       - name: Simple Compilation (Linux/macOS)
         if: ${{ !startsWith(matrix.os, 'windows-') }}
