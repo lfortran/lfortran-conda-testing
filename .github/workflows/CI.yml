@@ -321,7 +321,7 @@ jobs:
             git remote add ondrej https://github.com/certik/scipy
             git fetch ondrej
             git checkout -t ondrej/merge_special_minpack_fitpack_02
-            git checkout a32e743e53550533d44a8f7c44a71132eca750bf
+            git checkout de851b31c795d41ce9e1fdead3dac7afff173156
             micromamba env create -f environment.yml
             micromamba activate scipy-dev
             micromamba install -c conda-forge lfortran=${{ env.LFORTRAN_VERSION }}
