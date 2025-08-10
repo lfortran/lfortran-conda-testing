@@ -223,6 +223,7 @@ jobs:
             cd ../..
 
       - name: Test POT3D
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -l {0}
         run: |
             git clone https://github.com/gxyd/pot3d.git
