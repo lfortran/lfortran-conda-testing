@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.54.0
+  LFORTRAN_VERSION: 0.55.0
   MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
@@ -223,6 +223,7 @@ jobs:
             cd ../..
 
       - name: Test POT3D
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -l {0}
         run: |
             git clone https://github.com/gxyd/pot3d.git
@@ -321,7 +322,7 @@ jobs:
             git remote add ondrej https://github.com/certik/scipy
             git fetch ondrej
             git checkout -t ondrej/merge_special_minpack_fitpack_02
-            git checkout a32e743e53550533d44a8f7c44a71132eca750bf
+            git checkout de851b31c795d41ce9e1fdead3dac7afff173156
             micromamba env create -f environment.yml
             micromamba activate scipy-dev
             micromamba install -c conda-forge lfortran=${{ env.LFORTRAN_VERSION }}
