@@ -238,9 +238,9 @@ jobs:
             cp src/mpi_c_bindings.f90 ../src/
             cp src/mpi_constants.c ../src/
             cd ..
-            FC="$FC --cpp -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
-            FC="$FC --cpp --fast --skip-pass=dead_code_removal -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
-            FC="$FC --cpp --separate-compilation -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
+            FC="lfortran --cpp -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
+            FC="lfortran --cpp --fast --skip-pass=dead_code_removal -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
+            FC="lfortran --cpp --separate-compilation -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
             cd ..
 
       - name: Test PRIMA
