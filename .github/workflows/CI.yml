@@ -226,17 +226,22 @@ jobs:
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -l {0}
         run: |
-            git clone https://github.com/gxyd/pot3d.git
+            git clone https://github.com/parth121101/pot3d.git
             cd pot3d
-            # Only workarounds used now are (also tracked at: https://github.com/lfortran/lfortran/issues/2862):
-            # 1. HDF5 support replaced with binary file read (see: https://github.com/lfortran/lfortran/issues/6561)
-            # 2. namelist reading support replaced with use of file read (see: https://github.com/lfortran/lfortran/issues/1999)
-            # 3. MPI support replaced with custom MPI wrappers (we've C MPI wrappers from https://github.com/gxyd/c_mpi)
-            # 4. moved global procedures to module procedures (see: https://github.com/lfortran/lfortran/issues/6059)
-            git checkout -t origin/lf_hdf5_mpi_namelist_global_workarounds
-            git checkout 337546b13502ed1c07a0a38cba3afe1a9f35fb27
-            FC="lfortran" ./build_and_run.sh
-            FC="lfortran --fast --skip-pass=dead_code_removal" ./build_and_run.sh
+            git checkout -t origin/lf_hdf5_fortranMPI_namelist_global_workarounds
+            git checkout 380669edd3a5947985674a51e0d65482d6fe68b3
+
+            git clone https://github.com/lfortran/fortran_mpi
+            cd fortran_mpi
+            git checkout 31033d3c8af32c4c99fac803c161e6731bc39a78
+            cp src/mpi.f90 ../src/
+            cp src/mpi_c_bindings.f90 ../src/
+            cp src/mpi_constants.c ../src/
+            cd ..
+            FC="$FC --cpp -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
+            FC="$FC --cpp --fast --skip-pass=dead_code_removal -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
+            FC="$FC --cpp --separate-compilation -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
+            cd ..
 
       - name: Test PRIMA
         shell: bash -e -l {0}
