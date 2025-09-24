@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.56.0
+  LFORTRAN_VERSION: 0.57.0
   MACOSX_DEPLOYMENT_TARGET: 15.0
 
 jobs:
@@ -174,7 +174,7 @@ jobs:
 
             mkdir lf
             cd lf
-            FC=lfortran CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Debug ..
+            FC="lfortran --realloc-lhs-arrays" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Debug ..
             make VERBOSE=1
             ln -s ../model.dat .
             ./gpt2
@@ -184,7 +184,7 @@ jobs:
 
             mkdir lf-fast
             cd lf-fast
-            FC="lfortran --fast" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release ..
+            FC="lfortran --fast --realloc-lhs-arrays" CMAKE_PREFIX_PATH=$CONDA_PREFIX cmake -DFASTGPT_BLAS=OpenBLAS -DCMAKE_BUILD_TYPE=Release ..
             make VERBOSE=1
             ln -s ../model.dat .
             ./gpt2
@@ -200,7 +200,7 @@ jobs:
 
             git checkout lf20
             git checkout abb1d33d6ae02d8b62a13be7f9e51f6117c67ba4
-            FC=lfortran cmake . -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs"
+            FC=lfortran cmake . -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
             make -j2
             ctest
             cd ..
@@ -226,17 +226,22 @@ jobs:
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -l {0}
         run: |
-            git clone https://github.com/gxyd/pot3d.git
+            git clone https://github.com/parth121101/pot3d.git
             cd pot3d
-            # Only workarounds used now are (also tracked at: https://github.com/lfortran/lfortran/issues/2862):
-            # 1. HDF5 support replaced with binary file read (see: https://github.com/lfortran/lfortran/issues/6561)
-            # 2. namelist reading support replaced with use of file read (see: https://github.com/lfortran/lfortran/issues/1999)
-            # 3. MPI support replaced with custom MPI wrappers (we've C MPI wrappers from https://github.com/gxyd/c_mpi)
-            # 4. moved global procedures to module procedures (see: https://github.com/lfortran/lfortran/issues/6059)
-            git checkout -t origin/lf_hdf5_mpi_namelist_global_workarounds
-            git checkout 337546b13502ed1c07a0a38cba3afe1a9f35fb27
-            FC="lfortran" ./build_and_run.sh
-            FC="lfortran --fast --skip-pass=dead_code_removal" ./build_and_run.sh
+            git checkout -t origin/lf_hdf5_fortranMPI_namelist_global_workarounds
+            git checkout 380669edd3a5947985674a51e0d65482d6fe68b3
+
+            git clone https://github.com/lfortran/fortran_mpi
+            cd fortran_mpi
+            git checkout 31033d3c8af32c4c99fac803c161e6731bc39a78
+            cp src/mpi.f90 ../src/
+            cp src/mpi_c_bindings.f90 ../src/
+            cp src/mpi_constants.c ../src/
+            cd ..
+            FC="lfortran --cpp -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
+            FC="lfortran --cpp --fast --skip-pass=dead_code_removal -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
+            FC="lfortran --cpp --separate-compilation -DOPEN_MPI=yes" ./build_and_run_lfortran.sh
+            cd ..
 
       - name: Test PRIMA
         shell: bash -e -l {0}
