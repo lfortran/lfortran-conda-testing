@@ -49,6 +49,8 @@ jobs:
             micromamba activate lf
             micromamba list
             which lfortran
+            lfortran --help
+            lfortran --version
 
       - name: Clone LFortran Source Repository
         shell: bash -e -x -l {0}
@@ -57,6 +59,19 @@ jobs:
             cd lfortran
             git fetch https://github.com/lfortran/lfortran.git --tags -f
             git checkout v${{ env.LFORTRAN_VERSION }}
+
+      - name: Simple Compilation (Windows)
+        if: ${{ startsWith(matrix.os, 'windows-') }}
+        shell: cmd
+        run: |
+            call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+            bash -e -x -l test_simple_compilation.sh
+
+      - name: Simple Compilation (Linux/macOS)
+        if: ${{ !startsWith(matrix.os, 'windows-') }}
+        shell: bash -e -x -l {0}
+        run: |
+            bash test_simple_compilation.sh
 
       - name: Run LFortran Integration Tests
         if: ${{ !startsWith(matrix.os, 'windows-') }}
