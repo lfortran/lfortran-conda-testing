@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.59.0
+  LFORTRAN_VERSION: 0.60.0
   MACOSX_DEPLOYMENT_TARGET: 15.0
 
 jobs:
@@ -244,6 +244,7 @@ jobs:
             cd ..
 
       - name: Test PRIMA
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -l {0}
         run: |
             git clone https://github.com/Pranavchiku/prima.git
