@@ -304,11 +304,11 @@ jobs:
       - name: Test FPM
         shell: bash -e -l {0}
         run: |
-            export FC=lfortran
             git clone https://github.com/fortran-lang/fpm.git
             cd fpm
             git checkout main
             micromamba install -c conda-forge fpm gfortran
+            export FC=lfortran
             git checkout d0f89957541bdcc354da8e11422f5efcf9fedd0e
             fpm --compiler=$FC build --flag "--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
             fpm --compiler=$FC test --flag "--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
