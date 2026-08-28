@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.64.0
+  LFORTRAN_VERSION: 0.65.0
   MACOSX_DEPLOYMENT_TARGET: 15.0
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
           environment-file: environment.yml
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
-            nodejs=18.12.1
+            nodejs=18.20.4
 
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -107,9 +107,9 @@ jobs:
             lfortran=${{ env.LFORTRAN_VERSION }}
             python=3.10
             openblas=0.3.21
-            llvm-openmp=14.0.4
+            llvm-openmp=23.1.0
             fypp=3.2
-            openmpi=5.0.6
+            openmpi=5.0.10
 
       - name: Remove GFortran (Linux)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -408,8 +408,7 @@ jobs:
           environment-file: environment.yml
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
-            llvmdev=11.1.0
-            nodejs=18.12.1
+            nodejs=18.20.4
 
       - uses: hendrikmuhs/ccache-action@main
         with:
