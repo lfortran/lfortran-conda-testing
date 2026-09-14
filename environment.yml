@@ -5,3 +5,4 @@ dependencies:
   - make=4.3
   - cmake=3.25.2
   - toml=0.10.2
+  - tomli=2.2.1
