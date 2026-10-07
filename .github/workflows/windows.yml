@@ -1,0 +1,81 @@
+name: Windows
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  LFORTRAN_VERSION: 0.67.0
+
+jobs:
+  third_party_windows:
+    name: Third Party Windows ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["windows-2025"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: mamba-org/setup-micromamba@v2.0.2
+        with:
+          micromamba-version: '2.0.4-0'
+          environment-file: environment.yml
+          create-args: >-
+            lfortran=${{ env.LFORTRAN_VERSION }}
+
+      # Makes the MSVC environment (link.exe, LIB, ...) available to all
+      # following steps. LFortran uses link.exe to link executables.
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Print installed packages information
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            micromamba list
+            which lfortran
+            which link
+            lfortran --version
+
+      - name: Test Hello World
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            mkdir hello
+            cd hello
+            cat > hello.f90 <<'EOF'
+            program hello
+            implicit none
+            integer :: i, s
+            s = 0
+            do i = 1, 10
+                s = s + i
+            end do
+            print *, "Hello from LFortran on Windows, sum =", s
+            if (s /= 55) error stop "wrong sum"
+            end program
+            EOF
+            lfortran hello.f90 -o hello.exe
+            ./hello.exe | tee out.txt
+            grep -q "sum = *55" out.txt
+
+      - name: Test Modern Minpack (Fortran-Lang)
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/fortran-lang/minpack modern_minpack_01
+            cd modern_minpack_01
+            git checkout c0b5aea9fcd2b83865af921a7a7e881904f8d3c2
+            lfortran ./src/minpack.f90 -c --legacy-array-sections
+            lfortran ./examples/example_hybrd.f90 --legacy-array-sections
