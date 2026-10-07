@@ -32,6 +32,8 @@ jobs:
           environment-file: environment.yml
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
+            fpm=0.13.0
+            ninja
 
       # Makes the MSVC environment (link.exe, LIB, ...) available to all
       # following steps. LFortran uses link.exe to link executables.
@@ -79,3 +81,134 @@ jobs:
             git checkout c0b5aea9fcd2b83865af921a7a7e881904f8d3c2
             lfortran ./src/minpack.f90 -c --legacy-array-sections
             lfortran ./examples/example_hybrd.f90 --legacy-array-sections
+
+      - name: Test dftatom
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/certik/dftatom.git
+            cd dftatom
+            git checkout 9b678177f67e350b8a32e08cb61f51e6e708e87a
+            make -f Makefile.manual F90=lfortran F90FLAGS="-I../../src"
+            make -f Makefile.manual quicktest
+
+      - name: Test fortran-regex
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/perazz/fortran-regex.git
+            cd fortran-regex
+            git checkout 96ab33fe003862a28cec91ddd170ac0e86c26c87
+            fpm test --compiler=lfortran --verbose
+
+      - name: Test fortran-shlex
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/perazz/fortran-shlex.git
+            cd fortran-shlex
+            git checkout e20b6f86c82e33fae78b54b074bab5369efde6a3
+            fpm test --compiler=lfortran --flag "--realloc-lhs-arrays"
+
+      - name: Test toml-f
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/toml-f/toml-f.git
+            cd toml-f
+            git checkout 27abd768e79c7c790ffa58fe5ccfb105ba00883d
+            fpm test --compiler=lfortran --flag "--cpp --realloc-lhs-arrays"
+
+      - name: Test Julienne
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/BerkeleyLab/julienne.git
+            cd julienne
+            git checkout 632dbbe876fc2567f27a2c906429a3b596b6fd63
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays"
+
+      - name: Test Assert
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/berkeleylab/assert.git
+            cd assert
+            git checkout 1eb0cb9ce1421c76b6ab977370b6339918f20918
+            fpm test --compiler=lfortran --flag "--cpp"
+
+      - name: Test Formal (CPU)
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/berkeleylab/formal.git
+            cd formal
+            git checkout d60710a33a0c2a3a0e4e9450000ad1a6782a394a
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays"
+
+      - name: Test Fiats (CPU)
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/BerkeleyLab/fiats.git
+            cd fiats
+            git checkout 0a2ff33cf8c06c6379d8e8883e846577a29f2f5e
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays"
+
+      - name: Test neural-fortran
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/modern-fortran/neural-fortran.git
+            cd neural-fortran
+            git checkout 5e4940ff2850c9b039f8dd77982715bced8f3ce5
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays"
+
+      - name: Test stdlib
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/czgdp1807/stdlib.git
+            cd stdlib
+            git checkout abb1d33d6ae02d8b62a13be7f9e51f6117c67ba4
+            cmake -G Ninja -DCMAKE_Fortran_COMPILER=lfortran . -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
+            cmake --build . -j4
+            ctest --output-on-failure
+
+      - name: Test SNAP
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/certik/SNAP.git
+            cd SNAP
+            git checkout 169a9216f2c922e94065a519efbb0a6c8b55149e
+            cd src
+            make -j4 FORTRAN=lfortran FFLAGS= MPI=no OPENMP=no PP="lfortran -E"
+            ./gsnap ../qasnap/sample/inp out
+
+      - name: Test Parallel Research Kernels (serial)
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            ci/test_prk.sh serial
+
+      - name: Test fpm
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone -b v0.13.0 --depth 1 https://github.com/fortran-lang/fpm.git
+            cd fpm
+            fpm test --compiler=lfortran --flag "--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
