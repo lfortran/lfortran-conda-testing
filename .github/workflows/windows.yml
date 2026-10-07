@@ -11,6 +11,7 @@ on:
       - main
 
 env:
+  # Keep in sync with LFORTRAN_VERSION in CI.yml
   LFORTRAN_VERSION: 0.67.0
 
 jobs:
@@ -46,7 +47,10 @@ jobs:
           arch: x64
 
       # GitHub's Windows runners default to core.autocrlf=true, which checks
-      # sources out with CRLF line endings. Check out as on Linux/macOS.
+      # sources out with CRLF line endings. Check out as on Linux/macOS: some
+      # code fails to build with CRLF endings, see
+      # https://github.com/lfortran/lfortran/issues/14166 and
+      # https://github.com/lfortran/lfortran/issues/14168.
       - name: Disable Git CRLF conversion
         shell: bash -e -x -l {0}
         run: |
@@ -161,180 +165,13 @@ jobs:
             cmake --build . -j4
             ctest --output-on-failure
 
-      - name: Probe backspace after skipped records
-        continue-on-error: true
-        shell: bash -e -x -l {0}
-        run: |
-            source ci/windows_msvc.sh
-            mkdir bs2 && cd bs2
-            cat > bs2.f90 <<'EOF'
-            program bs2
-            implicit none
-            integer :: u, i, z, n
-            real(8) :: e(3)
-            open(newunit=u, file="bs2.txt", status="old")
-            do i = 1, 2
-                read(u, *)
-            end do
-            read(u, *) z
-            do while (z /= 3)
-                read(u, *)
-                read(u, *) z
-            end do
-            read(u, *) n
-            backspace(u)
-            read(u, *) n, e(:n)
-            close(u)
-            print *, z, n, e(:n)
-            if (n /= 3 .or. abs(e(3) + 3.5d0) > 1d-12) error stop "wrong"
-            end program
-            EOF
-            lfortran bs2.f90 -o bs2.exe
-            printf '# header 1\n# header 2\n1\n1 -1.5\n2\n2 -2.5 -2.25\n3\n3 -3.0 -3.25 -3.5\n' > bs2.txt
-            ./bs2.exe && echo "LF: OK" || echo "LF: FAIL"
-            printf '# header 1\r\n# header 2\r\n1\r\n1 -1.5\r\n2\r\n2 -2.5 -2.25\r\n3\r\n3 -3.0 -3.25 -3.5\r\n' > bs2.txt
-            ./bs2.exe && echo "CRLF: OK" || echo "CRLF: FAIL"
-
-      - name: Probe backspace in dftatom's data file
-        continue-on-error: true
-        shell: bash -e -x -l {0}
-        run: |
-            source ci/windows_msvc.sh
-            git clone https://github.com/certik/dftatom.git dftatom-probe
-            cd dftatom-probe
-            git checkout 9b678177f67e350b8a32e08cb61f51e6e708e87a
-            cd tests/lda
-            cat > bs3.f90 <<'EOF'
-            program bs3
-            implicit none
-            integer :: u, i, fZ, n
-            real(8) :: E_tot
-            real(8), allocatable :: ks(:)
-            open(newunit=u, file="nonrel_energies.dat", status="old")
-            do i = 1, 5
-                read(u, *)
-            end do
-            read(u, *) fZ
-            do while (fZ /= 23)
-                read(u, *)
-                read(u, *)
-                read(u, *) fZ
-            end do
-            read(u, *) E_tot
-            read(u, *) n
-            allocate(ks(n))
-            backspace(u)
-            read(u, *) n, ks
-            close(u)
-            print *, fZ, E_tot, n, ks(1)
-            if (abs(ks(1) + 195.2240139984d0) > 1d-8) error stop "wrong ks(1)"
-            end program
-            EOF
-            lfortran bs3.f90 -o bs3.exe
-            ./bs3.exe
-
-      - name: Probe backspace in a 1000-line file
-        continue-on-error: true
-        shell: bash -e -x -l {0}
-        run: |
-            source ci/windows_msvc.sh
-            mkdir bs45 && cd bs45
-            cat > bs4.f90 <<'EOF'
-            program bs4
-            implicit none
-            integer :: u, i, n
-            open(newunit=u, file="bs4.txt", status="old")
-            do i = 1, 900
-                read(u, *) n
-            end do
-            backspace(u)
-            read(u, *) n
-            close(u)
-            print *, "n =", n
-            if (n /= 900) error stop "wrong record after backspace"
-            end program
-            EOF
-            cat > bs5.f90 <<'EOF'
-            program bs5
-            implicit none
-            integer :: u, i, n
-            open(newunit=u, file="bs5.txt", status="replace")
-            do i = 1, 1000
-                write(u, '(i0)') i
-            end do
-            close(u)
-            open(newunit=u, file="bs5.txt", status="old")
-            do i = 1, 900
-                read(u, *) n
-            end do
-            backspace(u)
-            read(u, *) n
-            close(u)
-            print *, "n =", n
-            if (n /= 900) error stop "wrong record after backspace"
-            end program
-            EOF
-            lfortran bs4.f90 -o bs4.exe
-            lfortran bs5.f90 -o bs5.exe
-            seq 1000 > bs4.txt
-            ./bs4.exe && echo "bs4 LF: OK" || echo "bs4 LF: FAIL"
-            seq 1000 | sed 's/$/\r/' > bs4.txt
-            ./bs4.exe && echo "bs4 CRLF: OK" || echo "bs4 CRLF: FAIL"
-            ./bs5.exe && echo "bs5: OK" || echo "bs5: FAIL"
-            od -c bs5.txt | head -2
-
-      - name: Probe output before error stop
-        continue-on-error: true
-        shell: bash -e -x -l {0}
-        run: |
-            source ci/windows_msvc.sh
-            mkdir es && cd es
-            cat > es.f90 <<'EOF'
-            program es
-            print *, "before error stop"
-            error stop "stopping"
-            end program
-            EOF
-            lfortran es.f90 -o es.exe
-            ./es.exe > es.out 2> es.err || echo "exit code $?"
-            echo "stdout:"; cat es.out
-            echo "stderr:"; cat es.err
-
-      - name: Probe vtable with --separate-compilation
-        continue-on-error: true
-        shell: bash -e -x -l {0}
-        run: |
-            source ci/windows_msvc.sh
-            mkdir vtable && cd vtable
-            cat > m.f90 <<'EOF'
-            module m
-              type :: t
-              end type
-            contains
-              subroutine g()
-                class(t), allocatable :: x
-                allocate(x)
-              end subroutine
-            end module
-            EOF
-            cat > p.f90 <<'EOF'
-            program p
-              use m
-              class(t), allocatable :: y
-              allocate(y)
-              call g()
-              print *, "ok"
-            end program
-            EOF
-            lfortran --separate-compilation -c m.f90 -o m.obj
-            lfortran --separate-compilation -c p.f90 -o p.obj
-            lfortran m.obj p.obj -o p.exe
-            ./p.exe
-
       # Not tested yet on Windows:
+      # * dftatom: `backspace` positions the file at the wrong record
+      #   (https://github.com/lfortran/lfortran/issues/14169).
+      # * Julienne, Formal, Fiats, neural-fortran: link errors with MSVC,
+      #   LNK1227 for _VTable_* with --separate-compilation
+      #   (https://github.com/lfortran/lfortran/issues/14170) and missing
+      #   submodule procedures without it
+      #   (https://github.com/lfortran/lfortran/issues/14167).
       # * fpm: its C helper (filesystem_utilities.c) needs POSIX dirent.h,
       #   which MSVC does not provide (fpm supports MinGW on Windows).
-      # * Julienne, Formal, Fiats, neural-fortran: LFortran link errors with
-      #   MSVC (LNK1227 conflicting weak externals for _VTable_*, and
-      #   unresolved module procedures without --separate-compilation).
-      # * dftatom: `backspace` positions the file wrongly on Windows.

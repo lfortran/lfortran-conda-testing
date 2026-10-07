@@ -12,6 +12,7 @@ on:
 
 
 env:
+  # Keep in sync with LFORTRAN_VERSION in windows.yml
   LFORTRAN_VERSION: 0.67.0
   MACOSX_DEPLOYMENT_TARGET: 15.0
 
