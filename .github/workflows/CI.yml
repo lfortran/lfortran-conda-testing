@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.66.0
+  LFORTRAN_VERSION: 0.67.0
   MACOSX_DEPLOYMENT_TARGET: 15.0
 
 jobs:
@@ -213,11 +213,13 @@ jobs:
             git checkout lf11
             git checkout 169a9216f2c922e94065a519efbb0a6c8b55149e
             cd ./src
-            make -j8 FORTRAN=lfortran FFLAGS= MPI=no OPENMP=no
+            # clang >= 23 (conda-forge, macOS) rejects `cpp` on .F90 files with
+            # "invalid value 'f95' in '-x f95'", so preprocess them as C explicitly
+            make -j8 FORTRAN=lfortran FFLAGS= MPI=no OPENMP=no PP="cpp -x c -traditional-cpp"
             ./gsnap ../qasnap/sample/inp out
 
             make clean
-            make -j8 FORTRAN=lfortran FFLAGS="--fast --skip-pass=promote_allocatable_to_nonallocatable" MPI=no OPENMP=no
+            make -j8 FORTRAN=lfortran FFLAGS="--fast --skip-pass=promote_allocatable_to_nonallocatable" MPI=no OPENMP=no PP="cpp -x c -traditional-cpp"
             ./gsnap ../qasnap/sample/inp out
 
             cd ../..
