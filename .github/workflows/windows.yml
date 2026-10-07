@@ -159,7 +159,7 @@ jobs:
             git clone https://github.com/czgdp1807/stdlib.git
             cd stdlib
             git checkout abb1d33d6ae02d8b62a13be7f9e51f6117c67ba4
-            cmake -G Ninja -DCMAKE_Fortran_COMPILER=lfortran . -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
+            cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_COMPILER=lfortran . -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
             cmake --build . -j4
             ctest --output-on-failure
 
@@ -196,6 +196,44 @@ jobs:
             ./bs2.exe && echo "LF: OK" || echo "LF: FAIL"
             printf '# header 1\r\n# header 2\r\n1\r\n1 -1.5\r\n2\r\n2 -2.5 -2.25\r\n3\r\n3 -3.0 -3.25 -3.5\r\n' > bs2.txt
             ./bs2.exe && echo "CRLF: OK" || echo "CRLF: FAIL"
+
+      - name: Probe backspace in dftatom's data file
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            git clone https://github.com/certik/dftatom.git dftatom-probe
+            cd dftatom-probe
+            git checkout 9b678177f67e350b8a32e08cb61f51e6e708e87a
+            cd tests/lda
+            cat > bs3.f90 <<'EOF'
+            program bs3
+            implicit none
+            integer :: u, i, fZ, n
+            real(8) :: E_tot
+            real(8), allocatable :: ks(:)
+            open(newunit=u, file="nonrel_energies.dat", status="old")
+            do i = 1, 5
+                read(u, *)
+            end do
+            read(u, *) fZ
+            do while (fZ /= 23)
+                read(u, *)
+                read(u, *)
+                read(u, *) fZ
+            end do
+            read(u, *) E_tot
+            read(u, *) n
+            allocate(ks(n))
+            backspace(u)
+            read(u, *) n, ks
+            close(u)
+            print *, fZ, E_tot, n, ks(1)
+            if (abs(ks(1) + 195.2240139984d0) > 1d-8) error stop "wrong ks(1)"
+            end program
+            EOF
+            lfortran bs3.f90 -o bs3.exe
+            ./bs3.exe
 
       # Not tested yet on Windows:
       # * fpm: its C helper (filesystem_utilities.c) needs POSIX dirent.h,
