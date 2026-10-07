@@ -139,7 +139,6 @@ jobs:
             ci/test_prk.sh serial
 
       - name: Test SNAP
-        continue-on-error: true
         shell: bash -e -x -l {0}
         run: |
             source ci/windows_msvc.sh
@@ -152,7 +151,6 @@ jobs:
             ./gsnap ../qasnap/sample/inp out
 
       - name: Test stdlib
-        continue-on-error: true
         shell: bash -e -x -l {0}
         run: |
             source ci/windows_msvc.sh
@@ -234,6 +232,104 @@ jobs:
             EOF
             lfortran bs3.f90 -o bs3.exe
             ./bs3.exe
+
+      - name: Probe backspace in a 1000-line file
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            mkdir bs45 && cd bs45
+            cat > bs4.f90 <<'EOF'
+            program bs4
+            implicit none
+            integer :: u, i, n
+            open(newunit=u, file="bs4.txt", status="old")
+            do i = 1, 900
+                read(u, *) n
+            end do
+            backspace(u)
+            read(u, *) n
+            close(u)
+            print *, "n =", n
+            if (n /= 900) error stop "wrong record after backspace"
+            end program
+            EOF
+            cat > bs5.f90 <<'EOF'
+            program bs5
+            implicit none
+            integer :: u, i, n
+            open(newunit=u, file="bs5.txt", status="replace")
+            do i = 1, 1000
+                write(u, '(i0)') i
+            end do
+            close(u)
+            open(newunit=u, file="bs5.txt", status="old")
+            do i = 1, 900
+                read(u, *) n
+            end do
+            backspace(u)
+            read(u, *) n
+            close(u)
+            print *, "n =", n
+            if (n /= 900) error stop "wrong record after backspace"
+            end program
+            EOF
+            lfortran bs4.f90 -o bs4.exe
+            lfortran bs5.f90 -o bs5.exe
+            seq 1000 > bs4.txt
+            ./bs4.exe && echo "bs4 LF: OK" || echo "bs4 LF: FAIL"
+            seq 1000 | sed 's/$/\r/' > bs4.txt
+            ./bs4.exe && echo "bs4 CRLF: OK" || echo "bs4 CRLF: FAIL"
+            ./bs5.exe && echo "bs5: OK" || echo "bs5: FAIL"
+            od -c bs5.txt | head -2
+
+      - name: Probe output before error stop
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            mkdir es && cd es
+            cat > es.f90 <<'EOF'
+            program es
+            print *, "before error stop"
+            error stop "stopping"
+            end program
+            EOF
+            lfortran es.f90 -o es.exe
+            ./es.exe > es.out 2> es.err || echo "exit code $?"
+            echo "stdout:"; cat es.out
+            echo "stderr:"; cat es.err
+
+      - name: Probe vtable with --separate-compilation
+        continue-on-error: true
+        shell: bash -e -x -l {0}
+        run: |
+            source ci/windows_msvc.sh
+            mkdir vtable && cd vtable
+            cat > m.f90 <<'EOF'
+            module m
+              type :: t
+              end type
+            contains
+              subroutine g()
+                class(t), allocatable :: x
+                allocate(x)
+              end subroutine
+            end module
+            EOF
+            cat > p.f90 <<'EOF'
+            program p
+              use m
+              class(t), allocatable :: y
+              allocate(y)
+              call g()
+              print *, "ok"
+            end program
+            EOF
+            lfortran --separate-compilation -c m.f90 -o m.obj
+            lfortran --separate-compilation -c p.f90 -o p.obj
+            lfortran m.obj p.obj -o p.exe
+            ./p.exe
 
       # Not tested yet on Windows:
       # * fpm: its C helper (filesystem_utilities.c) needs POSIX dirent.h,
