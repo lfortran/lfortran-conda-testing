@@ -313,9 +313,11 @@ jobs:
             # Use a seed that avoids an FMA-sensitive ill-conditioned matrix,
             # see https://github.com/Reference-LAPACK/lapack/issues/1186
             sed -i "s/^0                 Code to interpret the seed$/2                 Code to interpret the seed\n1234 5678 9012 3456/" TESTING/dgd.in
-            # CMake < 3.31 does not know how to preprocess with LFortran
+            # CMake < 3.31 does not know how to preprocess with LFortran; the
+            # explicit preprocessing rule below is only used by Ninja
+            micromamba install -y -c conda-forge ninja
             echo 'set(CMAKE_Fortran_PREPROCESS_SOURCE "<CMAKE_Fortran_COMPILER> -E <SOURCE> > <PREPROCESSED_SOURCE>")' > lfortran.cmake
-            cmake -S . -B build \
+            cmake -S . -B build -G Ninja \
               -DCMAKE_TOOLCHAIN_FILE=lfortran.cmake \
               -DCMAKE_Fortran_COMPILER=lfortran \
               -DCMAKE_Fortran_FLAGS="--fixed-form-infer --implicit-interface --implicit-typing --legacy-array-sections --separate-compilation --use-loop-variable-after-loop" \
