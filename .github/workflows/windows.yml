@@ -29,10 +29,13 @@ jobs:
       - uses: mamba-org/setup-micromamba@v2.0.2
         with:
           micromamba-version: '2.0.4-0'
-          environment-file: environment.yml
+          # environment.yml pins make=4.3, which conflicts with fpm on Windows
+          environment-name: lf
           create-args: >-
             lfortran=${{ env.LFORTRAN_VERSION }}
             fpm=0.13.0
+            make=4.4.1
+            cmake=3.25.2
             ninja
 
       # Makes the MSVC environment (link.exe, LIB, ...) available to all
