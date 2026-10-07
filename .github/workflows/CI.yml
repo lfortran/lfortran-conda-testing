@@ -571,6 +571,7 @@ jobs:
             lfortran=${{ env.LFORTRAN_VERSION }}
             fpm=0.13.0
             pkg-config
+            clangxx
 
       - name: Remove GFortran (Linux)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -587,6 +588,9 @@ jobs:
             which clang clang++
             clang --version
             clang++ --version
+            # clangxx from conda-forge provides a clang++ matching the clang
+            # pulled in by lfortran (instead of the runner's system clang++)
+            test "$(clang --version | head -n 1)" = "$(clang++ --version | head -n 1)"
 
       - name: Build Caffeine
         shell: bash -e -x -l {0}
@@ -595,7 +599,8 @@ jobs:
             cd caffeine
             git checkout 0.8.2
             test "$(git rev-parse HEAD)" = 6cdf2eafb139ccb40a9a0f2a1b74750b34a9a1ac
-            FC=lfortran CC=clang CXX=clang++ ./install.sh --yes --prefix=$PWD/inst --verbose --enable-rpath
+            # --enable-debug turns on assertions in Caffeine and GASNet
+            FC=lfortran CC=clang CXX=clang++ ./install.sh --yes --prefix=$PWD/inst --verbose --enable-rpath --enable-debug
 
       - name: Test Caffeine (unit tests)
         shell: bash -e -x -l {0}
