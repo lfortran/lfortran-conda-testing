@@ -301,37 +301,57 @@ jobs:
 
             cd ..
 
-      - name: Test FPM
+      - name: Test Reference-LAPACK (smoke)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        shell: bash -e -l {0}
+        shell: bash -e -x -l {0}
         run: |
-            git clone https://github.com/fortran-lang/fpm.git
-            cd fpm
-            git checkout main
-            micromamba install -c conda-forge fpm gfortran
-            export FC=lfortran
-            git checkout d0f89957541bdcc354da8e11422f5efcf9fedd0e
-            fpm --compiler=$FC build --flag "--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
-            fpm --compiler=$FC test --flag "--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
+            git clone --depth 1 --branch v3.12.1 https://github.com/Reference-LAPACK/lapack.git lapack-testing
+            cd lapack-testing
+            test "$(git rev-parse HEAD)" = 6ec7f2bc4ecf4c4a93496aa2fa519575bc0e39ca
+            # Skip FortranCInterface_VERIFY (requires mixed Fortran/C linking)
+            sed -i "/FortranCInterface_VERIFY/d" LAPACKE/include/CMakeLists.txt
+            # Use a seed that avoids an FMA-sensitive ill-conditioned matrix,
+            # see https://github.com/Reference-LAPACK/lapack/issues/1186
+            sed -i "s/^0                 Code to interpret the seed$/2                 Code to interpret the seed\n1234 5678 9012 3456/" TESTING/dgd.in
+            # CMake < 3.31 does not know how to preprocess with LFortran; the
+            # explicit preprocessing rule below is only used by Ninja
+            micromamba install -y -c conda-forge ninja
+            echo 'set(CMAKE_Fortran_PREPROCESS_SOURCE "<CMAKE_Fortran_COMPILER> -E <SOURCE> > <PREPROCESSED_SOURCE>")' > lfortran.cmake
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_TOOLCHAIN_FILE=lfortran.cmake \
+              -DCMAKE_Fortran_COMPILER=lfortran \
+              -DCMAKE_Fortran_FLAGS="--fixed-form-infer --implicit-interface --implicit-typing --legacy-array-sections --separate-compilation --use-loop-variable-after-loop" \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DBUILD_INDEX64=OFF \
+              -DBUILD_INDEX64_EXT_API=OFF \
+              -DBUILD_COMPLEX=ON \
+              -DBUILD_COMPLEX16=ON \
+              -DBUILD_TESTING=ON
+            cmake --build build -j4
+            cd build
+            run_lapack_test() {
+                ./bin/$1 < ../TESTING/$2 2>&1 | tee $1_$2.out
+                if grep -q "failed to pass the threshold" $1_$2.out; then
+                    echo "ERROR: threshold failures in $1 < $2"
+                    exit 1
+                fi
+                if grep -E "[1-9][0-9]* error messages recorded" $1_$2.out; then
+                    echo "ERROR: error messages recorded in $1 < $2"
+                    exit 1
+                fi
+            }
+            run_lapack_test xlintsts stest.in
+            run_lapack_test xlintstd dtest.in
+            run_lapack_test xlintstz ztest.in
+            run_lapack_test xeigtstd nep.in
 
-            git clean -dfx
-            rm -rf build
-            fpm --compiler=$FC test --flag "--cpp --realloc-lhs-arrays --use-loop-variable-after-loop --separate-compilation"
-
-            git clean -dfx
-            rm -rf build
-            fpm --compiler=$FC test --flag "--cpp --realloc-lhs-arrays --use-loop-variable-after-loop --fast"
-
-            cd ..
-
-
-  test_scipy:
-    name: Check SciPy Build and Test Run ${{ matrix.os }}
+  third_party_fpm:
+    name: Third Party fpm Packages ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest"] # test only on ubuntu for now
+        os: ["macos-latest", "ubuntu-latest"]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -340,57 +360,261 @@ jobs:
       - uses: mamba-org/setup-micromamba@v2.0.2
         with:
           micromamba-version: '2.0.4-0'
+          environment-file: environment.yml
+          create-args: >-
+            lfortran=${{ env.LFORTRAN_VERSION }}
+            fpm=0.13.0
 
-      - uses: hendrikmuhs/ccache-action@main
+      - name: Remove GFortran (Linux)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash -e -x -l {0}
+        run: |
+            sudo apt-get remove -y gfortran
+
+      - name: Print installed packages information
+        shell: bash -e -x -l {0}
+        run: |
+            micromamba list
+            lfortran --version
+            fpm --version
+            if [[ "$(which gfortran)" != "" ]]; then
+              echo "GFortran is installed and should not be."
+              exit 1
+            fi
+
+      - name: Test Julienne
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/BerkeleyLab/julienne.git
+            cd julienne
+            git checkout 4.1.0
+            test "$(git rev-parse HEAD)" = 632dbbe876fc2567f27a2c906429a3b596b6fd63
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays"
+
+      - name: Test Assert
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/berkeleylab/assert.git
+            cd assert
+            git checkout 3.1.2
+            test "$(git rev-parse HEAD)" = 1eb0cb9ce1421c76b6ab977370b6339918f20918
+            fpm test --compiler=lfortran --flag "--cpp"
+            rm -rf build
+            fpm test --compiler=lfortran --flag "--cpp -DASSERTIONS -DASSERT_PARALLEL_CALLBACKS"
+
+      - name: Test neural-fortran
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/modern-fortran/neural-fortran.git
+            cd neural-fortran
+            git checkout 5e4940ff2850c9b039f8dd77982715bced8f3ce5
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays"
+
+      - name: Test toml-f
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/toml-f/toml-f.git
+            cd toml-f
+            git checkout 27abd768e79c7c790ffa58fe5ccfb105ba00883d
+            fpm test --compiler=lfortran --flag "--cpp --realloc-lhs-arrays"
+
+      - name: Test fortran-regex
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/perazz/fortran-regex.git
+            cd fortran-regex
+            git checkout 96ab33fe003862a28cec91ddd170ac0e86c26c87
+            fpm test --compiler=lfortran
+
+      - name: Test fortran-shlex
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/perazz/fortran-shlex.git
+            cd fortran-shlex
+            git checkout e20b6f86c82e33fae78b54b074bab5369efde6a3
+            fpm test --compiler=lfortran --flag "--realloc-lhs-arrays"
+
+      - name: Test fpm (last, as it installs GFortran)
+        shell: bash -e -x -l {0}
+        run: |
+            # Some of fpm's own tests invoke gfortran (fpm's default compiler)
+            micromamba install -y -c conda-forge gfortran
+            git clone -b v0.13.0 --depth 1 https://github.com/fortran-lang/fpm.git
+            cd fpm
+            test "$(git rev-parse HEAD)" = 90bb83a70e9bcf04d941fb43cca014ae1c0fc5ea
+            FLAGS="--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
+
+            LINK_FLAGS=""
+            if [[ "${{ matrix.os }}" == macos* ]]; then
+              # Work around wrong code from AArch64 linker optimization hints
+              # (https://github.com/lfortran/lfortran/issues/14120)
+              LINK_FLAGS="-Wl,-ignore_optimization_hints"
+            fi
+            fpm --compiler=lfortran test --flag "$FLAGS" ${LINK_FLAGS:+--link-flag "$LINK_FLAGS"}
+
+            rm -rf build
+            fpm --compiler=lfortran test --flag "$FLAGS --separate-compilation"
+
+            rm -rf build
+            fpm --compiler=lfortran test --flag "$FLAGS --fast"
+
+  third_party_gpu:
+    name: Third Party do concurrent and GPU ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest", "ubuntu-latest"]
+    steps:
+      - uses: actions/checkout@v4
         with:
-          variant: sccache
-          key: ${{ github.job }}-ubuntu-latest
+          fetch-depth: 0
 
-      - name: Build SciPy
+      - uses: mamba-org/setup-micromamba@v2.0.2
+        with:
+          micromamba-version: '2.0.4-0'
+          environment-file: environment.yml
+          create-args: >-
+            lfortran=${{ env.LFORTRAN_VERSION }}
+            fpm=0.13.0
+
+      - name: Remove GFortran (Linux)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash -e -x -l {0}
         run: |
-            git clone https://github.com/scipy/scipy
-            cd scipy
-            git remote add ondrej https://github.com/certik/scipy
-            git fetch ondrej
-            git checkout -t ondrej/merge_special_minpack_fitpack_02
-            git checkout de851b31c795d41ce9e1fdead3dac7afff173156
-            micromamba env create -f environment.yml
-            micromamba activate scipy-dev
-            micromamba install -c conda-forge lfortran=${{ env.LFORTRAN_VERSION }}
-            git submodule update --init
-            mkdir lfortran-build/
-            cd lfortran-build/
-            LIBRARY_PATH="$CONDA_PREFIX/share/lfortran/lib"
-            FC=lfortran cmake \
-              -DCMAKE_Fortran_FLAGS=--verbose \
-              -DLFORTRAN_RUNTIME_LIBRARY_PATH=$LIBRARY_PATH \
-              ..
-            make install
-            cp $LIBRARY_PATH/liblfortran_runtime.*  $CONDA_PREFIX/lib
-            cd ../
-            python dev.py build
+            sudo apt-get remove -y gfortran
 
-      - name: Test SciPy Special (Specfun, Amos, Mach and Cdflib)
+      - name: Print installed packages information
         shell: bash -e -x -l {0}
         run: |
-            cd scipy/
-            micromamba activate scipy-dev
-            python dev.py test -t scipy.special -v
+            micromamba list
+            lfortran --version
+            fpm --version
+            if [[ "${{ matrix.os }}" == macos* ]]; then
+              system_profiler SPDisplaysDataType
+            fi
 
-      - name: Test SciPy Minpack
+      - name: Test Formal (CPU)
         shell: bash -e -x -l {0}
         run: |
-            cd scipy/
-            micromamba activate scipy-dev
-            python dev.py test -t scipy.optimize -v
+            git clone https://github.com/berkeleylab/formal.git
+            cd formal
+            git checkout 0.4.0
+            test "$(git rev-parse HEAD)" = d60710a33a0c2a3a0e4e9450000ad1a6782a394a
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays"
 
-      - name: Test SciPy Fitpack
+      - name: Test Formal (Apple Metal GPU)
+        if: ${{ startsWith(matrix.os, 'macos') }}
         shell: bash -e -x -l {0}
         run: |
-            cd scipy/
-            micromamba activate scipy-dev
-            python dev.py test -t scipy.interpolate -v
+            cd formal
+            rm -rf build
+            # Every `do concurrent` in Formal is offloaded to the GPU (a loop
+            # that cannot be offloaded is a compile error).
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays --gpu=metal"
+
+      - name: Test Fiats (CPU)
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/BerkeleyLab/fiats.git
+            cd fiats
+            git checkout 0a2ff33cf8c06c6379d8e8883e846577a29f2f5e
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays"
+
+      - name: Test Fiats (Apple Metal GPU)
+        if: ${{ startsWith(matrix.os, 'macos') }}
+        shell: bash -e -x -l {0}
+        run: |
+            cd fiats
+            rm -rf build
+            # The lf1 branch turns the loops LFortran cannot offload yet into
+            # serial loops. Fiats computes in real(8), which Metal does not
+            # support, so those loops run on the CPU with a warning
+            # (--gpu-allow-cpu-fallback); every other loop is offloaded.
+            git fetch https://github.com/certik/fiats lf1
+            git checkout 869584f56955fe591304587eb34068b814448c33
+            fpm test --compiler=lfortran --flag "--cpp --separate-compilation --realloc-lhs-arrays --gpu=metal --gpu-allow-cpu-fallback"
+
+      - name: Test Parallel Research Kernels (serial)
+        shell: bash -e -x -l {0}
+        run: |
+            ci/test_prk.sh serial
+
+      - name: Test Parallel Research Kernels (do concurrent, CPU)
+        shell: bash -e -x -l {0}
+        run: |
+            ci/test_prk.sh stdpar
+
+      - name: Test Parallel Research Kernels (do concurrent, Apple Metal GPU)
+        if: ${{ startsWith(matrix.os, 'macos') }}
+        shell: bash -e -x -l {0}
+        run: |
+            ci/test_prk.sh metal
+
+  third_party_coarrays:
+    name: Third Party Coarrays ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest", "ubuntu-latest"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: mamba-org/setup-micromamba@v2.0.2
+        with:
+          micromamba-version: '2.0.4-0'
+          environment-file: environment.yml
+          create-args: >-
+            lfortran=${{ env.LFORTRAN_VERSION }}
+            fpm=0.13.0
+            pkg-config
+
+      - name: Remove GFortran (Linux)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash -e -x -l {0}
+        run: |
+            sudo apt-get remove -y gfortran
+
+      - name: Print installed packages information
+        shell: bash -e -x -l {0}
+        run: |
+            micromamba list
+            lfortran --version
+            fpm --version
+            which clang clang++
+            clang --version
+            clang++ --version
+
+      - name: Build Caffeine
+        shell: bash -e -x -l {0}
+        run: |
+            git clone https://github.com/BerkeleyLab/caffeine.git
+            cd caffeine
+            git checkout 0.8.2
+            test "$(git rev-parse HEAD)" = 6cdf2eafb139ccb40a9a0f2a1b74750b34a9a1ac
+            FC=lfortran CC=clang CXX=clang++ ./install.sh --yes --prefix=$PWD/inst --verbose --enable-rpath
+
+      - name: Test Caffeine (unit tests)
+        shell: bash -e -x -l {0}
+        run: |
+            cd caffeine
+            CAF_IMAGES=4 ../ci/run_julienne_tests.sh ./run-fpm.sh test --verbose
+
+      - name: Test Caffeine (multi-image smoke test)
+        shell: bash -e -x -l {0}
+        run: |
+            cd caffeine
+            # Exercises LFortran's coarray support end-to-end via PRIF
+            make -C app prif NUM_IMAGES=4 2>&1 | tee smoke.log
+            grep -q "All tests passed." smoke.log
+
+      - name: Test Parallel Research Kernels (coarrays)
+        shell: bash -e -x -l {0}
+        run: |
+            CAFFEINE_PREFIX=$PWD/caffeine/inst CAF_IMAGES=4 ci/test_prk.sh coarray
 
   misc:
     name: Misc Test ${{ matrix.os }}
