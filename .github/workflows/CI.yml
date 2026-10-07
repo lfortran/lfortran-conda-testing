@@ -313,10 +313,15 @@ jobs:
             # Use a seed that avoids an FMA-sensitive ill-conditioned matrix,
             # see https://github.com/Reference-LAPACK/lapack/issues/1186
             sed -i "s/^0                 Code to interpret the seed$/2                 Code to interpret the seed\n1234 5678 9012 3456/" TESTING/dgd.in
+            # CMake < 3.31 does not know how to preprocess with LFortran
+            echo 'set(CMAKE_Fortran_PREPROCESS_SOURCE "<CMAKE_Fortran_COMPILER> -E <SOURCE> > <PREPROCESSED_SOURCE>")' > lfortran.cmake
             cmake -S . -B build \
+              -DCMAKE_TOOLCHAIN_FILE=lfortran.cmake \
               -DCMAKE_Fortran_COMPILER=lfortran \
               -DCMAKE_Fortran_FLAGS="--fixed-form-infer --implicit-interface --implicit-typing --legacy-array-sections --separate-compilation --use-loop-variable-after-loop" \
               -DCMAKE_BUILD_TYPE=Release \
+              -DBUILD_INDEX64=OFF \
+              -DBUILD_INDEX64_EXT_API=OFF \
               -DBUILD_COMPLEX=ON \
               -DBUILD_COMPLEX16=ON \
               -DBUILD_TESTING=ON
@@ -375,37 +380,6 @@ jobs:
               exit 1
             fi
 
-      - name: Test fpm
-        shell: bash -e -x -l {0}
-        run: |
-            git clone -b v0.13.0 --depth 1 https://github.com/fortran-lang/fpm.git
-            cd fpm
-            test "$(git rev-parse HEAD)" = 90bb83a70e9bcf04d941fb43cca014ae1c0fc5ea
-            FLAGS="--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
-
-            if [[ "${{ matrix.os }}" == macos* ]]; then
-              # On macOS one unit test (if-macro-truthy-from-define) is
-              # miscompiled in whole-program mode; it passes with
-              # --separate-compilation below. Require that it is the only
-              # failure, so that any new failure is still caught.
-              set +e
-              fpm --compiler=lfortran test --flag "$FLAGS" 2>&1 | tee fpm-test.log
-              set -e
-              grep -E "\[FAILED\]" fpm-test.log | tee failed.txt
-              test "$(cat failed.txt)" = "#      ... if-macro-truthy-from-define [FAILED]"
-              grep -q "^1 test(s) failed!" fpm-test.log
-              test "$(grep -c '<ERROR> Execution for object' fpm-test.log)" = 1
-              grep -q '<ERROR> Execution for object " fpm-test "' fpm-test.log
-            else
-              fpm --compiler=lfortran test --flag "$FLAGS"
-            fi
-
-            rm -rf build
-            fpm --compiler=lfortran test --flag "$FLAGS --separate-compilation"
-
-            rm -rf build
-            fpm --compiler=lfortran test --flag "$FLAGS --fast"
-
       - name: Test Julienne
         shell: bash -e -x -l {0}
         run: |
@@ -457,6 +431,30 @@ jobs:
             cd fortran-shlex
             git checkout e20b6f86c82e33fae78b54b074bab5369efde6a3
             fpm test --compiler=lfortran --flag "--realloc-lhs-arrays"
+
+      - name: Test fpm (last, as it installs GFortran)
+        shell: bash -e -x -l {0}
+        run: |
+            # Some of fpm's own tests invoke gfortran (fpm's default compiler)
+            micromamba install -y -c conda-forge gfortran
+            git clone -b v0.13.0 --depth 1 https://github.com/fortran-lang/fpm.git
+            cd fpm
+            test "$(git rev-parse HEAD)" = 90bb83a70e9bcf04d941fb43cca014ae1c0fc5ea
+            FLAGS="--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
+
+            LINK_FLAGS=""
+            if [[ "${{ matrix.os }}" == macos* ]]; then
+              # Work around wrong code from AArch64 linker optimization hints
+              # (https://github.com/lfortran/lfortran/issues/14120)
+              LINK_FLAGS="-Wl,-ignore_optimization_hints"
+            fi
+            fpm --compiler=lfortran test --flag "$FLAGS" ${LINK_FLAGS:+--link-flag "$LINK_FLAGS"}
+
+            rm -rf build
+            fpm --compiler=lfortran test --flag "$FLAGS --separate-compilation"
+
+            rm -rf build
+            fpm --compiler=lfortran test --flag "$FLAGS --fast"
 
   third_party_gpu:
     name: Third Party do concurrent and GPU ${{ matrix.os }}
