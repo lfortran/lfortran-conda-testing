@@ -4,7 +4,7 @@
 The CI installs the `lfortran` package from conda-forge (version set by
 `LFORTRAN_VERSION` in `.github/workflows/CI.yml`) and tests it on:
 
-* LFortran's own integration, reference and LSP tests (Linux, macOS, Windows)
+* LFortran's own integration, reference and LSP tests (Linux, macOS)
 * Third-party codes, all pinned to a fixed commit (Linux, macOS):
   * Standalone: Modern Minpack, dftatom, fastGPT, stdlib, SNAP, POT3D, PRIMA,
     Reference-LAPACK (smoke tests, Linux only)

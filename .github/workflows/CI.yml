@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["windows-2025", "macos-latest", "ubuntu-latest"]
+        os: ["macos-latest", "ubuntu-latest"]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,28 +61,24 @@ jobs:
             git checkout v${{ env.LFORTRAN_VERSION }}
 
       - name: Run LFortran Integration Tests
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/integration_tests
             ./run_tests.py -b llvm wasm
 
       - name: Run LFortran Fast Integration Tests
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/integration_tests
             ./run_tests.py -b llvm wasm -f
 
       - name: Run LFortran Reference Tests
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran
             ./run_tests.py --skip-run-with-dbg --no-llvm
 
       - name: Run LFortran LSP Tests
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
         shell: bash -e -x -l {0}
         run: |
             cd lfortran
@@ -671,6 +667,7 @@ jobs:
             micromamba list
             which lfortran
             which link
+            lfortran --help
             lfortran --version
 
       - name: Test Hello World
