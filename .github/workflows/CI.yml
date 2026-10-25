@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.67.0
+  LFORTRAN_VERSION: 0.68.0
   MACOSX_DEPLOYMENT_TARGET: 15.0
 
 jobs:
@@ -70,6 +70,11 @@ jobs:
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/integration_tests
+            if [[ "${{ matrix.os }}" == macos* ]]; then
+              # Disabled for LFortran 0.68.0: https://github.com/lfortran/lfortran/issues/15968
+              # (--fast real(16) code fails to link on arm64: undefined __floatunsitf)
+              sed -i.bak '/^RUN(NAME real128_intrinsic_math_0[123] /d' CMakeLists.txt
+            fi
             ./run_tests.py -b llvm wasm -f
 
       - name: Run LFortran Reference Tests
@@ -595,8 +600,8 @@ jobs:
         run: |
             git clone https://github.com/BerkeleyLab/caffeine.git
             cd caffeine
-            git checkout 0.8.2
-            test "$(git rev-parse HEAD)" = 6cdf2eafb139ccb40a9a0f2a1b74750b34a9a1ac
+            git checkout 0.8.4
+            test "$(git rev-parse HEAD)" = 0f9ca691cbe6782838266a9bb5005ae187f253a2
             # --enable-debug turns on assertions in Caffeine and GASNet
             FC=lfortran CC=clang CXX=clang++ ./install.sh --yes --prefix=$PWD/inst --verbose --enable-rpath --enable-debug
 
