@@ -600,8 +600,8 @@ jobs:
         run: |
             git clone https://github.com/BerkeleyLab/caffeine.git
             cd caffeine
-            git checkout 0.8.2
-            test "$(git rev-parse HEAD)" = 6cdf2eafb139ccb40a9a0f2a1b74750b34a9a1ac
+            git checkout 0.8.4
+            test "$(git rev-parse HEAD)" = 0f9ca691cbe6782838266a9bb5005ae187f253a2
             # --enable-debug turns on assertions in Caffeine and GASNet
             FC=lfortran CC=clang CXX=clang++ ./install.sh --yes --prefix=$PWD/inst --verbose --enable-rpath --enable-debug
 
