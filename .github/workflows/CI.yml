@@ -70,6 +70,11 @@ jobs:
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/integration_tests
+            if [[ "${{ matrix.os }}" == macos* ]]; then
+              # Disabled for LFortran 0.68.0: https://github.com/lfortran/lfortran/issues/15968
+              # (--fast real(16) code fails to link on arm64: undefined __floatunsitf)
+              sed -i.bak '/^RUN(NAME real128_intrinsic_math_0[123] /d' CMakeLists.txt
+            fi
             ./run_tests.py -b llvm wasm -f
 
       - name: Run LFortran Reference Tests
