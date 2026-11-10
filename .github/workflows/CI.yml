@@ -200,7 +200,10 @@ jobs:
 
             git checkout lf20
             git checkout abb1d33d6ae02d8b62a13be7f9e51f6117c67ba4
-            FC=lfortran cmake . -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
+            # selected_real_kind(33) returns 16 since #17338, so stdlib would
+            # build complex(16), which LFortran rejects (#15472). Match
+            # ebcc56f8ef: keep the pre-quad configuration.
+            FC=lfortran cmake . -DWITH_QP=OFF -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
             make -j2
             ctest
             cd ..
@@ -768,7 +771,8 @@ jobs:
             git clone https://github.com/czgdp1807/stdlib.git
             cd stdlib
             git checkout abb1d33d6ae02d8b62a13be7f9e51f6117c67ba4
-            cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_COMPILER=lfortran . -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
+            # Same quad-precision skip as the Linux step (#15472, ebcc56f8ef).
+            cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_COMPILER=lfortran . -DWITH_QP=OFF -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
             cmake --build . -j4
             ctest --output-on-failure
 
