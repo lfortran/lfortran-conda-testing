@@ -155,7 +155,9 @@ jobs:
             make -f Makefile.manual F90=lfortran F90FLAGS="-I../../src"
             make -f Makefile.manual quicktest
             git clean -dfx
-            make -f Makefile.manual F90="lfortran --skip-pass=inline_function_calls,fma --fast" F90FLAGS="-I../../src"
+            # The fma pass was removed in 0.69.0 (lfortran#16804). Naming it in
+            # --skip-pass is now an error.
+            make -f Makefile.manual F90="lfortran --skip-pass=inline_function_calls --fast" F90FLAGS="-I../../src"
             make -f Makefile.manual quicktest
 
 
