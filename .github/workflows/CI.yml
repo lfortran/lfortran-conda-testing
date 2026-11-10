@@ -12,7 +12,7 @@ on:
 
 
 env:
-  LFORTRAN_VERSION: 0.68.0
+  LFORTRAN_VERSION: 0.69.0
   MACOSX_DEPLOYMENT_TARGET: 15.0
 
 jobs:
@@ -70,11 +70,6 @@ jobs:
         shell: bash -e -x -l {0}
         run: |
             cd lfortran/integration_tests
-            if [[ "${{ matrix.os }}" == macos* ]]; then
-              # Disabled for LFortran 0.68.0: https://github.com/lfortran/lfortran/issues/15968
-              # (--fast real(16) code fails to link on arm64: undefined __floatunsitf)
-              sed -i.bak '/^RUN(NAME real128_intrinsic_math_0[123] /d' CMakeLists.txt
-            fi
             ./run_tests.py -b llvm wasm -f
 
       - name: Run LFortran Reference Tests
@@ -160,7 +155,9 @@ jobs:
             make -f Makefile.manual F90=lfortran F90FLAGS="-I../../src"
             make -f Makefile.manual quicktest
             git clean -dfx
-            make -f Makefile.manual F90="lfortran --skip-pass=inline_function_calls,fma --fast" F90FLAGS="-I../../src"
+            # The fma pass was removed in 0.69.0 (lfortran#16804). Naming it in
+            # --skip-pass is now an error.
+            make -f Makefile.manual F90="lfortran --skip-pass=inline_function_calls --fast" F90FLAGS="-I../../src"
             make -f Makefile.manual quicktest
 
 
@@ -203,7 +200,10 @@ jobs:
 
             git checkout lf20
             git checkout abb1d33d6ae02d8b62a13be7f9e51f6117c67ba4
-            FC=lfortran cmake . -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
+            # selected_real_kind(33) returns 16 since #17338, so stdlib would
+            # build complex(16), which LFortran rejects (#15472). Match
+            # ebcc56f8ef: keep the pre-quad configuration.
+            FC=lfortran cmake . -DWITH_QP=OFF -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
             make -j2
             ctest
             cd ..
@@ -323,7 +323,7 @@ jobs:
             cmake -S . -B build -G Ninja \
               -DCMAKE_TOOLCHAIN_FILE=lfortran.cmake \
               -DCMAKE_Fortran_COMPILER=lfortran \
-              -DCMAKE_Fortran_FLAGS="--fixed-form-infer --implicit-interface --implicit-typing --legacy-array-sections --separate-compilation --use-loop-variable-after-loop" \
+              -DCMAKE_Fortran_FLAGS="--fixed-form-infer --implicit-interface --implicit-typing --legacy-array-sections --separate-compilation" \
               -DCMAKE_BUILD_TYPE=Release \
               -DBUILD_INDEX64=OFF \
               -DBUILD_INDEX64_EXT_API=OFF \
@@ -445,7 +445,9 @@ jobs:
             git clone -b v0.13.0 --depth 1 https://github.com/fortran-lang/fpm.git
             cd fpm
             test "$(git rev-parse HEAD)" = 90bb83a70e9bcf04d941fb43cca014ae1c0fc5ea
-            FLAGS="--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
+            # --use-loop-variable-after-loop was removed in 0.69.0 (105d8e0be0):
+            # a DO loop now leaves its variable at the standard final value.
+            FLAGS="--cpp --realloc-lhs-arrays"
 
             LINK_FLAGS=""
             if [[ "${{ matrix.os }}" == macos* ]]; then
@@ -771,7 +773,8 @@ jobs:
             git clone https://github.com/czgdp1807/stdlib.git
             cd stdlib
             git checkout abb1d33d6ae02d8b62a13be7f9e51f6117c67ba4
-            cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_COMPILER=lfortran . -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
+            # Same quad-precision skip as the Linux step (#15472, ebcc56f8ef).
+            cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_COMPILER=lfortran . -DWITH_QP=OFF -DTEST_DRIVE_BUILD_TESTING=OFF -DBUILD_EXAMPLE=ON -DCMAKE_Fortran_COMPILER_WORKS=TRUE -DCMAKE_Fortran_FLAGS="--cpp --realloc-lhs-arrays"
             cmake --build . -j4
             ctest --output-on-failure
 
