@@ -323,7 +323,7 @@ jobs:
             cmake -S . -B build -G Ninja \
               -DCMAKE_TOOLCHAIN_FILE=lfortran.cmake \
               -DCMAKE_Fortran_COMPILER=lfortran \
-              -DCMAKE_Fortran_FLAGS="--fixed-form-infer --implicit-interface --implicit-typing --legacy-array-sections --separate-compilation --use-loop-variable-after-loop" \
+              -DCMAKE_Fortran_FLAGS="--fixed-form-infer --implicit-interface --implicit-typing --legacy-array-sections --separate-compilation" \
               -DCMAKE_BUILD_TYPE=Release \
               -DBUILD_INDEX64=OFF \
               -DBUILD_INDEX64_EXT_API=OFF \
@@ -445,7 +445,9 @@ jobs:
             git clone -b v0.13.0 --depth 1 https://github.com/fortran-lang/fpm.git
             cd fpm
             test "$(git rev-parse HEAD)" = 90bb83a70e9bcf04d941fb43cca014ae1c0fc5ea
-            FLAGS="--cpp --realloc-lhs-arrays --use-loop-variable-after-loop"
+            # --use-loop-variable-after-loop was removed in 0.69.0 (105d8e0be0):
+            # a DO loop now leaves its variable at the standard final value.
+            FLAGS="--cpp --realloc-lhs-arrays"
 
             LINK_FLAGS=""
             if [[ "${{ matrix.os }}" == macos* ]]; then
